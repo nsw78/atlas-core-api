@@ -19,6 +19,16 @@ docker-compose ps
 
 Abra no navegador: **http://localhost:3000**
 
+## 🔄 Atualizar Frontend (Após Mudanças)
+
+```powershell
+# Reconstruir apenas frontend
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
+```
+
+Veja [ATUALIZAR_FRONTEND.md](ATUALIZAR_FRONTEND.md) para mais detalhes.
+
 ## 📋 URLs dos Serviços
 
 - **Frontend**: http://localhost:3000

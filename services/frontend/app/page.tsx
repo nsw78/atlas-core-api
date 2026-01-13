@@ -18,43 +18,69 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-gray-50">
       <Header healthStatus={healthStatus} />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            ATLAS Strategic Intelligence Platform
+      <div className="container mx-auto px-4 py-12">
+        {/* Hero Section */}
+        <div className="mb-16 text-center">
+          <h1 className="text-5xl font-light text-gray-900 mb-4 tracking-tight">
+            ATLAS
           </h1>
-          <p className="text-gray-600">
-            Advanced Threat Analysis & Legal Strategic Intelligence
+          <p className="text-2xl text-gray-700 mb-2 font-light">
+            Strategic Intelligence for Decisions That Shape the Future
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-2">Risk Assessment</h2>
-            <p className="text-gray-600 text-sm">
-              Assess geopolitical, economic, and infrastructure risks
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-2">Intelligence Analysis</h2>
-            <p className="text-gray-600 text-sm">
-              AI-powered analysis of open-source intelligence
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-2">Scenario Simulation</h2>
-            <p className="text-gray-600 text-sm">
-              What-if analysis and policy impact modeling
-            </p>
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto mt-4">
+            Transforming open-source global signals into clear, defensible, executive decisions.
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-500">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              Operational
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Compliant
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+              Multicloud
+            </span>
           </div>
         </div>
 
-        <RiskAssessment />
+        {/* Core Capabilities */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-gray-300 transition-colors">
+            <h2 className="text-xl font-medium text-gray-900 mb-3">Strategic Risk Assessment</h2>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Continuous evaluation of geopolitical, economic, climate, and infrastructure risks. 
+              Multi-dimensional analysis designed to support capital allocation, expansion, and resilience decisions.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-gray-300 transition-colors">
+            <h2 className="text-xl font-medium text-gray-900 mb-3">Intelligence Analysis</h2>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              AI-driven synthesis of global open-source intelligence. Correlation of weak signals 
+              before they become crises. Explainable outputs suitable for executive review.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-gray-300 transition-colors">
+            <h2 className="text-xl font-medium text-gray-900 mb-3">Scenario & Impact Simulation</h2>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Forward-looking simulation engine. What-if analysis across policy, supply chain, 
+              climate, and market dynamics. Decision rehearsal before real-world execution.
+            </p>
+          </div>
+        </div>
+
+        {/* Strategic Operations Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-light text-gray-900 mb-6">Strategic Operations</h2>
+          <RiskAssessment />
+        </div>
       </div>
     </main>
   )
