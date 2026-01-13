@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Core API
+  description: Strategic Intelligence Platform API
+  version: 1.0.0
+  contact:
+    name: ATLAS Team
+    email: api@atlas-intel.gov
+
+servers:
+  - url: https://api.atlas-intel.gov/v1
+    description: Production
+  - url: https://api-staging.atlas-intel.gov/v1
+    description: Staging
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /risks/assess:
+    post:
+      summary: Assess risk for entity
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessRiskRequest'
+      responses:
+        '200':
+          description: Risk assessment completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessment'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        mfa_code:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+
+    AssessRiskRequest:
+      type: object
+      required:
+        - entity_id
+        - entity_type
+      properties:
+        entity_id:
+          type: string
+        entity_type:
+          type: string
+        dimensions:
+          type: array
+          items:
+            type: string
+        time_horizon:
+          type: string
+
+    RiskAssessment:
+      type: object
+      properties:
+        id:
+          type: string
+        entity_id:
+          type: string
+        overall_score:
+          type: number
+        confidence:
+          type: number
+        dimensions:
+          type: object

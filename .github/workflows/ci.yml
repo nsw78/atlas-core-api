@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      
+      - name: Run tests
+        run: |
+          cd services/api-gateway && go test ./... -v
+          cd ../iam && go test ./... -v
+          cd ../risk-assessment && go test ./... -v
+
+  test-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd services/news-aggregator
+          pip install -r requirements.txt
+      
+      - name: Run tests
+        run: |
+          cd services/news-aggregator
+          python -m pytest tests/ -v
+
+  build:
+    needs: [test-go, test-python]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker images
+        run: |
+          docker build -t atlas/api-gateway:latest services/api-gateway/
+          docker build -t atlas/iam:latest services/iam/
+          docker build -t atlas/risk-assessment:latest services/risk-assessment/
+          docker build -t atlas/news-aggregator:latest services/news-aggregator/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
