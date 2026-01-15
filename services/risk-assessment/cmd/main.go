@@ -13,10 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"atlas-core-api/services/risk-assessment/internal/config"
-	"atlas-core-api/services/risk-assessment/internal/handlers"
-	"atlas-core-api/services/risk-assessment/internal/middleware"
-	"atlas-core-api/services/risk-assessment/internal/service"
+	"atlas-core-api/services/risk-assessment/internal/api/handlers"
+	"atlas-core-api/services/risk-assessment/internal/api/middleware"
+	service "atlas-core-api/services/risk-assessment/internal/application"
+	"atlas-core-api/services/risk-assessment/internal/infrastructure/config"
+	"atlas-core-api/services/risk-assessment/internal/infrastructure/repository"
 )
 
 func main() {
@@ -30,8 +31,11 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Initialize repository
+	riskRepo := repository.NewRiskRepository()
+
 	// Initialize services
-	riskService := service.NewRiskAssessmentService()
+	riskService := service.NewRiskAssessmentService(riskRepo)
 
 	// Initialize handlers
 	riskHandler := handlers.NewRiskHandler(riskService)
@@ -59,7 +63,14 @@ func main() {
 			risks.POST("/assess", riskHandler.AssessRisk)
 			risks.GET("/:id", riskHandler.GetRiskAssessment)
 			risks.GET("/trends", riskHandler.GetRiskTrends)
-			risks.POST("/alerts", riskHandler.ConfigureAlert)
+			risks.GET("/entities/:entity_id", riskHandler.GetAssessmentsByEntity)
+		}
+
+		alerts := api.Group("/risk/alerts")
+		{
+			alerts.POST("", riskHandler.ConfigureAlert)
+			alerts.GET("", riskHandler.ListAlerts)
+			alerts.DELETE("/:id", riskHandler.DeleteAlert)
 		}
 	}
 

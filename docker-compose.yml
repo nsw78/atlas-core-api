@@ -166,6 +166,75 @@ services:
       timeout: 5s
       retries: 5
 
+  ingestion-service:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: atlas-ingestion
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      ENVIRONMENT: development
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: raw-data
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8084/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  normalization-service:
+    build:
+      context: ./services/normalization
+      dockerfile: Dockerfile
+    container_name: atlas-normalization
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: 8085
+      ENVIRONMENT: development
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_RAW_TOPIC: raw-data
+      KAFKA_NORMALIZED_TOPIC: normalized-data
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  audit-logging:
+    build:
+      context: ./services/audit-logging
+      dockerfile: Dockerfile
+    container_name: atlas-audit-logging
+    ports:
+      - "8086:8086"
+    environment:
+      PORT: 8086
+      ENVIRONMENT: development
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Frontend
   frontend:
     build:
@@ -183,6 +252,392 @@ services:
       - atlas-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ML Infrastructure (Phase 2)
+  ml-infrastructure:
+    build:
+      context: ./services/ml-infrastructure
+      dockerfile: Dockerfile
+    container_name: atlas-ml-infrastructure
+    ports:
+      - "8087:8087"
+    environment:
+      PORT: 8087
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8087/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nlp-service:
+    build:
+      context: ./services/nlp-service
+      dockerfile: Dockerfile
+    container_name: atlas-nlp-service
+    ports:
+      - "8088:8088"
+    environment:
+      PORT: 8088
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  graph-intelligence:
+    build:
+      context: ./services/graph-intelligence
+      dockerfile: Dockerfile
+    container_name: atlas-graph-intelligence
+    ports:
+      - "8089:8089"
+    environment:
+      PORT: 8089
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4j_dev}
+    depends_on:
+      - neo4j
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8089/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: atlas-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j_dev}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  xai-service:
+    build:
+      context: ./services/xai-service
+      dockerfile: Dockerfile
+    container_name: atlas-xai-service
+    ports:
+      - "8090:8090"
+    environment:
+      PORT: 8090
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  model-serving:
+    build:
+      context: ./services/model-serving
+      dockerfile: Dockerfile
+    container_name: atlas-model-serving
+    ports:
+      - "8091:8091"
+    environment:
+      PORT: 8091
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      - mlflow
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  model-monitoring:
+    build:
+      context: ./services/model-monitoring
+      dockerfile: Dockerfile
+    container_name: atlas-model-monitoring
+    ports:
+      - "8092:8092"
+    environment:
+      PORT: 8092
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8092/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.8.1
+    container_name: atlas-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      BACKEND_STORE_URI: postgresql://atlas:atlas_dev@postgres:5432/mlflow
+      DEFAULT_ARTIFACT_ROOT: s3://mlflow-artifacts
+    depends_on:
+      - postgres
+    networks:
+      - atlas-network
+    command: mlflow server --host 0.0.0.0 --port 5000
+
+  # Decision Support Services (Phase 3)
+  scenario-simulation:
+    build:
+      context: ./services/scenario-simulation
+      dockerfile: Dockerfile
+    container_name: atlas-scenario-simulation
+    ports:
+      - "8093:8093"
+    environment:
+      PORT: 8093
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8093/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  war-gaming:
+    build:
+      context: ./services/war-gaming
+      dockerfile: Dockerfile
+    container_name: atlas-war-gaming
+    ports:
+      - "8094:8094"
+    environment:
+      PORT: 8094
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8094/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  digital-twins:
+    build:
+      context: ./services/digital-twins
+      dockerfile: Dockerfile
+    container_name: atlas-digital-twins
+    ports:
+      - "8095:8095"
+    environment:
+      PORT: 8095
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8095/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  policy-impact:
+    build:
+      context: ./services/policy-impact
+      dockerfile: Dockerfile
+    container_name: atlas-policy-impact
+    ports:
+      - "8096:8096"
+    environment:
+      PORT: 8096
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8096/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Strategic Platform Services (Phase 4)
+  multi-region:
+    build:
+      context: ./services/multi-region
+      dockerfile: Dockerfile
+    container_name: atlas-multi-region
+    ports:
+      - "8097:8097"
+    environment:
+      PORT: 8097
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8097/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  data-residency:
+    build:
+      context: ./services/data-residency
+      dockerfile: Dockerfile
+    container_name: atlas-data-residency
+    ports:
+      - "8098:8098"
+    environment:
+      PORT: 8098
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8098/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  federated-learning:
+    build:
+      context: ./services/federated-learning
+      dockerfile: Dockerfile
+    container_name: atlas-federated-learning
+    ports:
+      - "8099:8099"
+    environment:
+      PORT: 8099
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8099/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mobile-api:
+    build:
+      context: ./services/mobile-api
+      dockerfile: Dockerfile
+    container_name: atlas-mobile-api
+    ports:
+      - "8100:8100"
+    environment:
+      PORT: 8100
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8100/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  compliance-automation:
+    build:
+      context: ./services/compliance-automation
+      dockerfile: Dockerfile
+    container_name: atlas-compliance-automation
+    ports:
+      - "8101:8101"
+    environment:
+      PORT: 8101
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8101/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optimization Services (Phase 5)
+  performance-optimization:
+    build:
+      context: ./services/performance-optimization
+      dockerfile: Dockerfile
+    container_name: atlas-performance-optimization
+    ports:
+      - "8102:8102"
+    environment:
+      PORT: 8102
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8102/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cost-optimization:
+    build:
+      context: ./services/cost-optimization
+      dockerfile: Dockerfile
+    container_name: atlas-cost-optimization
+    ports:
+      - "8103:8103"
+    environment:
+      PORT: 8103
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8103/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  advanced-rd:
+    build:
+      context: ./services/advanced-rd
+      dockerfile: Dockerfile
+    container_name: atlas-advanced-rd
+    ports:
+      - "8104:8104"
+    environment:
+      PORT: 8104
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8104/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  security-certification:
+    build:
+      context: ./services/security-certification
+      dockerfile: Dockerfile
+    container_name: atlas-security-certification
+    ports:
+      - "8105:8105"
+    environment:
+      PORT: 8105
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8105/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  continuous-improvement:
+    build:
+      context: ./services/continuous-improvement
+      dockerfile: Dockerfile
+    container_name: atlas-continuous-improvement
+    ports:
+      - "8106:8106"
+    environment:
+      PORT: 8106
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8106/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -219,6 +674,7 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  neo4j_data:
 
 networks:
   atlas-network:

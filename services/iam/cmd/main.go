@@ -13,11 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"atlas-core-api/services/iam/internal/config"
-	"atlas-core-api/services/iam/internal/handlers"
-	"atlas-core-api/services/iam/internal/middleware"
-	"atlas-core-api/services/iam/internal/repository"
-	"atlas-core-api/services/iam/internal/service"
+	"atlas-core-api/services/iam/internal/api/handlers"
+	"atlas-core-api/services/iam/internal/api/middleware"
+	service "atlas-core-api/services/iam/internal/application"
+	"atlas-core-api/services/iam/internal/infrastructure/config"
+	"atlas-core-api/services/iam/internal/infrastructure/repository"
 )
 
 func main() {
