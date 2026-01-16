@@ -13,11 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atlas"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - atlas-network
 
@@ -42,11 +37,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - atlas-network
 
@@ -74,38 +64,40 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     networks:
       - atlas-network
 
   # Backend Services
-  api-gateway:
+  # api-gateway:
+  #   build:
+  #     context: ./services/api-gateway
+  #     dockerfile: Dockerfile
+  #   container_name: atlas-api-gateway
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     PORT: 8080
+  #     ENVIRONMENT: development
+  #     IAM_SERVICE_URL: http://iam-service:8101
+  #     REDIS_URL: redis://redis:6379
+  #     JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - atlas-network
+
+  python-api-gateway:
     build:
-      context: ./services/api-gateway
+      context: ./services/python-api-gateway
       dockerfile: Dockerfile
-    container_name: atlas-api-gateway
+    container_name: atlas-python-api-gateway
     ports:
       - "8080:8080"
     environment:
       PORT: 8080
       ENVIRONMENT: development
-      IAM_SERVICE_URL: http://iam-service:8081
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   iam-service:
     build:
@@ -120,15 +112,9 @@ services:
       DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   risk-assessment:
     build:
@@ -143,11 +129,6 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   news-aggregator:
     build:
@@ -160,11 +141,6 @@ services:
       PORT: 8083
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   ingestion-service:
     build:
@@ -179,15 +155,9 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: raw-data
     depends_on:
-      kafka:
-        condition: service_healthy
+      - kafka
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8084/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   normalization-service:
     build:
@@ -203,15 +173,9 @@ services:
       KAFKA_RAW_TOPIC: raw-data
       KAFKA_NORMALIZED_TOPIC: normalized-data
     depends_on:
-      kafka:
-        condition: service_healthy
+      - kafka
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   audit-logging:
     build:
@@ -225,15 +189,9 @@ services:
       ENVIRONMENT: development
       DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8086/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Frontend
   frontend:
@@ -247,14 +205,9 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:
-      - api-gateway
+      - python-api-gateway
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # ML Infrastructure (Phase 2)
   ml-infrastructure:
@@ -269,11 +222,6 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8087/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   nlp-service:
     build:
@@ -286,11 +234,6 @@ services:
       PORT: 8088
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8088/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   graph-intelligence:
     build:
@@ -308,11 +251,6 @@ services:
       - neo4j
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8089/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   neo4j:
     image: neo4j:5-community
@@ -327,11 +265,6 @@ services:
       - neo4j_data:/data
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7474"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   xai-service:
     build:
@@ -344,11 +277,6 @@ services:
       PORT: 8090
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8090/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   model-serving:
     build:
@@ -364,11 +292,6 @@ services:
       - mlflow
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   model-monitoring:
     build:
@@ -381,11 +304,6 @@ services:
       PORT: 8092
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8092/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.8.1
@@ -413,11 +331,6 @@ services:
       PORT: 8093
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8093/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   war-gaming:
     build:
@@ -430,11 +343,6 @@ services:
       PORT: 8094
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8094/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   digital-twins:
     build:
@@ -447,11 +355,6 @@ services:
       PORT: 8095
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8095/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   policy-impact:
     build:
@@ -464,11 +367,6 @@ services:
       PORT: 8096
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8096/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Strategic Platform Services (Phase 4)
   multi-region:
@@ -482,11 +380,6 @@ services:
       PORT: 8097
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8097/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   data-residency:
     build:
@@ -499,11 +392,6 @@ services:
       PORT: 8098
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8098/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   federated-learning:
     build:
@@ -516,11 +404,6 @@ services:
       PORT: 8099
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8099/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   mobile-api:
     build:
@@ -533,11 +416,6 @@ services:
       PORT: 8100
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8100/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   compliance-automation:
     build:
@@ -550,11 +428,6 @@ services:
       PORT: 8101
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8101/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Optimization Services (Phase 5)
   performance-optimization:
@@ -568,11 +441,6 @@ services:
       PORT: 8102
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8102/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   cost-optimization:
     build:
@@ -585,11 +453,6 @@ services:
       PORT: 8103
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8103/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   advanced-rd:
     build:
@@ -602,11 +465,6 @@ services:
       PORT: 8104
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8104/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   security-certification:
     build:
@@ -619,11 +477,6 @@ services:
       PORT: 8105
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8105/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   continuous-improvement:
     build:
@@ -636,11 +489,6 @@ services:
       PORT: 8106
     networks:
       - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8106/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Monitoring
   prometheus:

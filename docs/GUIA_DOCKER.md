@@ -83,15 +83,28 @@ Você verá o dashboard do ATLAS!
 
 ## 🌐 URLs dos Serviços
 
-| Serviço | URL | Descrição |
-|---------|-----|-----------|
-| **Frontend** | http://localhost:3000 | Dashboard principal |
-| **API Gateway** | http://localhost:8080 | API principal |
-| **IAM Service** | http://localhost:8081 | Autenticação |
-| **Risk Assessment** | http://localhost:8082 | Avaliação de riscos |
-| **News Aggregator** | http://localhost:8083 | Agregador de notícias |
-| **Grafana** | http://localhost:3001 | Monitoramento (admin/admin) |
-| **Prometheus** | http://localhost:9090 | Métricas |
+| Serviço                      | URL                     |
+|------------------------------|-------------------------|
+| atlas-war-gaming             | http://localhost:8094   |
+| atlas-scenario-simulation    | http://localhost:8093   |
+| atlas-nlp-service            | http://localhost:8088   |
+| atlas-compliance-automation  | http://localhost:8101   |
+| atlas-model-monitoring       | http://localhost:8092   |
+| atlas-policy-impact          | http://localhost:8096   |
+| atlas-security-certification | http://localhost:8105   |
+| atlas-cost-optimization      | http://localhost:8103   |
+| atlas-mobile-api             | http://localhost:8100   |
+| atlas-advanced-rd            | http://localhost:8104   |
+| atlas-prometheus             | http://localhost:9090   |
+| atlas-digital-twins          | http://localhost:8095   |
+| atlas-continuous-improvement | http://localhost:8106   |
+| atlas-performance-optimization| http://localhost:8102   |
+| atlas-federated-learning     | http://localhost:8099   |
+| atlas-data-residency         | http://localhost:8098   |
+| atlas-grafana                | http://localhost:3001   |
+| atlas-xai-service            | http://localhost:8090   |
+| atlas-multi-region           | http://localhost:8097   |
+| atlas-ml-infrastructure      | http://localhost:8087   |
 
 ---
 
