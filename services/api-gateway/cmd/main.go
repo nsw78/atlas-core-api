@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -40,7 +41,10 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger(logger))
 	r.Use(middleware.RequestID())
-	r.Use(middleware.CORS())
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.SecureCORS())
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(middleware.RateLimiter())
 
 	// Health check
 	r.GET("/health", handlers.HealthCheck)

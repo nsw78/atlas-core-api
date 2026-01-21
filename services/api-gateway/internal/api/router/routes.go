@@ -4,9 +4,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"atlas-core-api/services/api-gateway/internal/infrastructure/circuitbreaker"
 	"atlas-core-api/services/api-gateway/internal/infrastructure/config"
 )
 
@@ -396,8 +396,7 @@ func proxyToService(cfg *config.Config, serviceName, backendPath string) gin.Han
 			finalPath += "?" + c.Request.URL.RawQuery
 		}
 
-		// Forward request to backend service
-		client := &http.Client{Timeout: 30 * time.Second}
+		// Forward request to backend service with circuit breaker
 		req, err := http.NewRequest(c.Request.Method, baseURL+finalPath, c.Request.Body)
 		if err != nil {
 			c.JSON(500, gin.H{"error": "Failed to create request"})
@@ -413,9 +412,10 @@ func proxyToService(cfg *config.Config, serviceName, backendPath string) gin.Han
 			}
 		}
 
-		resp, err := client.Do(req)
+		// Use circuit breaker for resilient requests
+		resp, err := circuitbreaker.DoHTTPRequest(serviceName, req)
 		if err != nil {
-			c.JSON(502, gin.H{"error": "Service unavailable", "service": serviceName, "details": err.Error()})
+			c.JSON(503, gin.H{"error": "Service unavailable", "service": serviceName, "details": err.Error()})
 			return
 		}
 		defer resp.Body.Close()

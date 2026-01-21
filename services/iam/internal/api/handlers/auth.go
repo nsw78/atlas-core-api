@@ -41,18 +41,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response := LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    3600,
-	}
+	// Set httpOnly cookies instead of returning tokens in response
+	c.SetCookie(
+		"access_token",
+		accessToken,
+		3600,                // 1 hour
+		"/",
+		"",
+		true,                // secure
+		true,                // httpOnly
+	)
 
-	c.JSON(http.StatusOK, gin.H{"data": response})
+	c.SetCookie(
+		"refresh_token",
+		refreshToken,
+		86400*7,             // 7 days
+		"/",
+		"",
+		true,
+		true,
+	)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// TODO: Implement token blacklisting
+	// Clear cookies by setting maxAge to -1
+	c.SetCookie("access_token", "", -1, "/", "", true, true)
+	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+
+	// TODO: Implement token blacklisting in Redis
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 

@@ -3,9 +3,15 @@ module atlas-core-api/services/api-gateway
 go 1.21
 
 require (
+	github.com/gin-contrib/cors v1.5.0
+	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.5.0
+	github.com/redis/go-redis/v9 v9.4.0
+	github.com/sony/gobreaker v0.5.0
+	github.com/stretchr/testify v1.8.4
+	github.com/ulule/limiter/v3 v3.11.2
 	go.uber.org/zap v1.26.0
 )
 

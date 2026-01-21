@@ -1,11 +1,13 @@
+# ATLAS Frontend - Production Dockerfile
+# Multi-stage build for optimized image size
+
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install dependencies
 COPY package.json ./
-# Install dependencies (will generate package-lock.json if needed)
 RUN npm install
 
 # Copy source code
@@ -15,26 +17,27 @@ COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:18-alpine
+FROM node:20-alpine AS runner
 
 WORKDIR /app
-
-# Copy built application
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-
-# Use the node user that already exists in node:18-alpine (UID 1000, GID 1000)
-# This user is already created in the base image
-RUN chown -R node:node /app
-
-# Switch to node user (non-root)
-USER node
-
-EXPOSE 3000
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-CMD ["npm", "start"]
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built artifacts
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]

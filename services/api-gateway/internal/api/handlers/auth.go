@@ -36,17 +36,35 @@ func Login(c *gin.Context) {
 
 	// TODO: Call IAM service for authentication
 	// For now, return mock response
-	response := LoginResponse{
-		AccessToken:  "mock-access-token",
-		RefreshToken: "mock-refresh-token",
-		TokenType:    "Bearer",
-		ExpiresIn:    3600,
-		User: User{
-			ID:          "user-123",
-			Username:    req.Username,
-			Roles:       []string{"analyst"},
-			Permissions: []string{"read:risks", "write:scenarios"},
-		},
+	accessToken := "mock-access-token"
+	refreshToken := "mock-refresh-token"
+
+	// Set httpOnly cookies for security
+	c.SetCookie(
+		"access_token",      // name
+		accessToken,         // value
+		3600,                // maxAge (1 hour)
+		"/",                 // path
+		"",                  // domain (empty = current domain)
+		true,                // secure (HTTPS only)
+		true,                // httpOnly (not accessible via JavaScript)
+	)
+
+	c.SetCookie(
+		"refresh_token",
+		refreshToken,
+		86400*7,             // maxAge (7 days)
+		"/",
+		"",
+		true,
+		true,
+	)
+
+	response := User{
+		ID:          "user-123",
+		Username:    req.Username,
+		Roles:       []string{"analyst"},
+		Permissions: []string{"read:risks", "write:scenarios"},
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": response})
