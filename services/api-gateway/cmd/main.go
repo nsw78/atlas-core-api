@@ -16,6 +16,7 @@ import (
 
 	"atlas-core-api/services/api-gateway/internal/api/handlers"
 	"atlas-core-api/services/api-gateway/internal/api/middleware"
+	"atlas-core-api/services/api-gateway/internal/api/proxy"
 	"atlas-core-api/services/api-gateway/internal/api/router"
 	"atlas-core-api/services/api-gateway/internal/infrastructure/config"
 )
@@ -30,6 +31,15 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize services
+	iamService, err := proxy.NewService("iam", cfg.IAMServiceURL, logger)
+	if err != nil {
+		logger.Fatal("Failed to create IAM service proxy", zap.Error(err))
+	}
+
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(iamService)
 
 	// Set Gin mode
 	if cfg.Environment == "production" {
@@ -53,8 +63,8 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		// Public routes
-		api.POST("/auth/login", handlers.Login)
-		api.POST("/auth/refresh", handlers.RefreshToken)
+		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/refresh", authHandler.RefreshToken)
 
 		// Protected routes
 		protected := api.Group("")

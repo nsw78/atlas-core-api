@@ -8,7 +8,7 @@ import { useI18n } from "@/i18n";
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useI18n();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    const result = await login(email, password);
+    const result = await login(username, password);
     if (!result.success) {
       setError(result.error || t("auth.invalidCredentials"));
     }
@@ -69,12 +69,12 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                  {t("auth.email")}
+                  {t("auth.username")}
                 </label>
                 <input
                   type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
                   className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

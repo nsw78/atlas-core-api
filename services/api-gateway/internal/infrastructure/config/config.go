@@ -22,7 +22,7 @@ func Load() *Config {
 	return &Config{
 		Environment:     getEnv("ENVIRONMENT", "development"),
 		Port:            port,
-		IAMServiceURL:   getEnv("IAM_SERVICE_URL", "http://iam-service:8080"),
+		IAMServiceURL:   getEnv("IAM_SERVICE_URL", "http://iam-service:8081"),
 		RedisURL:        getEnv("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:       getEnv("JWT_SECRET", "change-me-in-production"),
 		LogLevel:        getEnv("LOG_LEVEL", "info"),

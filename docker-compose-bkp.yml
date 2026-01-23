@@ -1,0 +1,863 @@
+services:
+  # ===========================================
+  # INFRASTRUCTURE - Databases
+  # ===========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: atlas-postgres
+    environment:
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c max_connections=500
+      -c synchronous_commit=off
+      -c effective_cache_size=2GB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+
+  postgis:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: atlas-postgis
+    environment:
+      POSTGRES_DB: atlas_geo
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_dev}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas_geo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c max_connections=500
+      -c synchronous_commit=off
+      -c effective_cache_size=2GB
+
+  redis:
+    image: redis:7-alpine
+    container_name: atlas-redis
+    command: redis-server --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ===========================================
+  # INFRASTRUCTURE - Message Queue
+  # ===========================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: atlas-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 5
+      ZOOKEEPER_INIT_LIMIT: 10
+    ports:
+      - "2181:2181"
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: atlas-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_COMPRESSION_TYPE: snappy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ===========================================
+  # CORE SERVICES - Go
+  # ===========================================
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: atlas-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      IAM_SERVICE_URL: http://iam-service:8081
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  iam-service:
+    build:
+      context: ./services/iam
+      dockerfile: Dockerfile
+    container_name: atlas-iam
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      ENVIRONMENT: development
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      REDIS_URL: redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  risk-assessment:
+    build:
+      context: ./services/risk-assessment
+      dockerfile: Dockerfile
+    container_name: atlas-risk-assessment
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      ENVIRONMENT: development
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      REDIS_URL: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  ingestion-service:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: atlas-ingestion
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      ENVIRONMENT: development
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: raw-data
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8084/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  normalization-service:
+    build:
+      context: ./services/normalization
+      dockerfile: Dockerfile
+    container_name: atlas-normalization
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: 8085
+      ENVIRONMENT: development
+      KAFKA_BROKERS: kafka:29092
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8085/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  audit-logging:
+    build:
+      context: ./services/audit-logging
+      dockerfile: Dockerfile
+    container_name: atlas-audit-logging
+    ports:
+      - "8086:8086"
+    environment:
+      PORT: 8086
+      ENVIRONMENT: development
+      KAFKA_BROKERS: kafka:29092
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  graph-intelligence:
+    build:
+      context: ./services/graph-intelligence
+      dockerfile: Dockerfile
+    container_name: atlas-graph-intelligence
+    ports:
+      - "8089:8089"
+    environment:
+      PORT: 8089
+      ENVIRONMENT: development
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+      REDIS_URL: redis://redis:6379/4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8089/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # CORE SERVICES - Python
+  # ===========================================
+  news-aggregator:
+    build:
+      context: ./services/news-aggregator
+      dockerfile: Dockerfile
+    container_name: atlas-news-aggregator
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: 8083
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # ML/AI SERVICES - Python
+  # ===========================================
+  ml-infrastructure:
+    build:
+      context: ./services/ml-infrastructure
+      dockerfile: Dockerfile
+    container_name: atlas-ml-infrastructure
+    ports:
+      - "8087:8087"
+    environment:
+      PORT: 8087
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/5
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  nlp-service:
+    build:
+      context: ./services/nlp-service
+      dockerfile: Dockerfile
+    container_name: atlas-nlp-service
+    ports:
+      - "8088:8088"
+    environment:
+      PORT: 8088
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/6
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s  # NLP models take longer to load
+
+  xai-service:
+    build:
+      context: ./services/xai-service
+      dockerfile: Dockerfile
+    container_name: atlas-xai-service
+    ports:
+      - "8090:8090"
+    environment:
+      PORT: 8090
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/7
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  model-serving:
+    build:
+      context: ./services/model-serving
+      dockerfile: Dockerfile
+    container_name: atlas-model-serving
+    ports:
+      - "8091:8091"
+    environment:
+      PORT: 8091
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/8
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  model-monitoring:
+    build:
+      context: ./services/model-monitoring
+      dockerfile: Dockerfile
+    container_name: atlas-model-monitoring
+    ports:
+      - "8092:8092"
+    environment:
+      PORT: 8092
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/9
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # SIMULATION SERVICES - Python
+  # ===========================================
+  scenario-simulation:
+    build:
+      context: ./services/scenario-simulation
+      dockerfile: Dockerfile
+    container_name: atlas-scenario-simulation
+    ports:
+      - "8093:8093"
+    environment:
+      PORT: 8093
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/10
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  war-gaming:
+    build:
+      context: ./services/war-gaming
+      dockerfile: Dockerfile
+    container_name: atlas-war-gaming
+    ports:
+      - "8094:8094"
+    environment:
+      PORT: 8094
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/11
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8094/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  digital-twins:
+    build:
+      context: ./services/digital-twins
+      dockerfile: Dockerfile
+    container_name: atlas-digital-twins
+    ports:
+      - "8095:8095"
+    environment:
+      PORT: 8095
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/12
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+      POSTGIS_URL: postgres://atlas:atlas_dev@postgis:5432/atlas_geo?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      postgis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  policy-impact:
+    build:
+      context: ./services/policy-impact
+      dockerfile: Dockerfile
+    container_name: atlas-policy-impact
+    ports:
+      - "8096:8096"
+    environment:
+      PORT: 8096
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/13
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # GLOBAL/COMPLIANCE SERVICES - Python
+  # ===========================================
+  multi-region:
+    build:
+      context: ./services/multi-region
+      dockerfile: Dockerfile
+    container_name: atlas-multi-region
+    ports:
+      - "8097:8097"
+    environment:
+      PORT: 8097
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/14
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  data-residency:
+    build:
+      context: ./services/data-residency
+      dockerfile: Dockerfile
+    container_name: atlas-data-residency
+    ports:
+      - "8098:8098"
+    environment:
+      PORT: 8098
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/15
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8098/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  federated-learning:
+    build:
+      context: ./services/federated-learning
+      dockerfile: Dockerfile
+    container_name: atlas-federated-learning
+    ports:
+      - "8099:8099"
+    environment:
+      PORT: 8099
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  mobile-api:
+    build:
+      context: ./services/mobile-api
+      dockerfile: Dockerfile
+    container_name: atlas-mobile-api
+    ports:
+      - "8100:8100"
+    environment:
+      PORT: 8100
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      API_GATEWAY_URL: http://api-gateway:8080
+    depends_on:
+      redis:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  compliance-automation:
+    build:
+      context: ./services/compliance-automation
+      dockerfile: Dockerfile
+    container_name: atlas-compliance-automation
+    ports:
+      - "8101:8101"
+    environment:
+      PORT: 8101
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8101/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # OPERATIONAL SERVICES - Python
+  # ===========================================
+  performance-optimization:
+    build:
+      context: ./services/performance-optimization
+      dockerfile: Dockerfile
+    container_name: atlas-performance-optimization
+    ports:
+      - "8102:8102"
+    environment:
+      PORT: 8102
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8102/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  cost-optimization:
+    build:
+      context: ./services/cost-optimization
+      dockerfile: Dockerfile
+    container_name: atlas-cost-optimization
+    ports:
+      - "8103:8103"
+    environment:
+      PORT: 8103
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8103/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  advanced-rd:
+    build:
+      context: ./services/advanced-rd
+      dockerfile: Dockerfile
+    container_name: atlas-advanced-rd
+    ports:
+      - "8104:8104"
+    environment:
+      PORT: 8104
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8104/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  security-certification:
+    build:
+      context: ./services/security-certification
+      dockerfile: Dockerfile
+    container_name: atlas-security-certification
+    ports:
+      - "8105:8105"
+    environment:
+      PORT: 8105
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://atlas:atlas_dev@postgres:5432/atlas?sslmode=disable
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8105/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  continuous-improvement:
+    build:
+      context: ./services/continuous-improvement
+      dockerfile: Dockerfile
+    container_name: atlas-continuous-improvement
+    ports:
+      - "8106:8106"
+    environment:
+      PORT: 8106
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8106/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # FRONTEND - Next.js
+  # ===========================================
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: atlas-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  atlas-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ===========================================
+# VOLUMES
+# ===========================================
+volumes:
+  postgres_data:
+    driver: local
+  postgis_data:
+    driver: local
+  redis_data:
+    driver: local

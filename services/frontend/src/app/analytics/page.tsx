@@ -1,194 +1,135 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
-import { Card, CardHeader, CardTitle, CardContent, Button } from "@/components/atoms";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import {
-  LineChart,
-  Line,
+  generateTimeSeries,
+  analyticsKPIs,
+  regionHeatmap,
+  categoryBreakdown,
+  type TimeRange,
+  type ThreatType,
+  type RegionFilter,
+} from "@/data/analytics";
+import {
   AreaChart,
   Area,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  Legend,
 } from "recharts";
 
-// Types
-interface TimeSeriesData {
-  date: string;
-  operational: number;
-  financial: number;
-  geopolitical: number;
-  reputational: number;
-  compliance: number;
-}
+// ============================================
+// EXPORT UTILITY
+// ============================================
+function exportData(data: unknown[], format: "csv" | "json", filename: string) {
+  let content: string;
+  let mimeType: string;
 
-interface SectorRisk {
-  sector: string;
-  risk: number;
-  trend: "up" | "down" | "stable";
-  alerts: number;
-}
-
-interface RegionData {
-  region: string;
-  riskScore: number;
-  incidents: number;
-  assets: number;
-  coverage: number;
-}
-
-// Mock data generators
-const generateTimeSeriesData = (): TimeSeriesData[] => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return months.map((month) => ({
-    date: month,
-    operational: Math.floor(Math.random() * 40) + 30,
-    financial: Math.floor(Math.random() * 35) + 25,
-    geopolitical: Math.floor(Math.random() * 50) + 40,
-    reputational: Math.floor(Math.random() * 30) + 20,
-    compliance: Math.floor(Math.random() * 25) + 15,
-  }));
-};
-
-const sectorRiskData: SectorRisk[] = [
-  { sector: "Energy & Utilities", risk: 78, trend: "up", alerts: 23 },
-  { sector: "Financial Services", risk: 65, trend: "stable", alerts: 18 },
-  { sector: "Technology", risk: 52, trend: "down", alerts: 12 },
-  { sector: "Healthcare", risk: 34, trend: "stable", alerts: 7 },
-  { sector: "Infrastructure", risk: 81, trend: "up", alerts: 28 },
-  { sector: "Manufacturing", risk: 59, trend: "down", alerts: 14 },
-];
-
-const regionData: RegionData[] = [
-  { region: "Asia Pacific", riskScore: 72, incidents: 156, assets: 2340, coverage: 94 },
-  { region: "Europe", riskScore: 58, incidents: 89, assets: 1890, coverage: 97 },
-  { region: "North America", riskScore: 45, incidents: 67, assets: 3120, coverage: 99 },
-  { region: "Middle East", riskScore: 81, incidents: 198, assets: 890, coverage: 88 },
-  { region: "South America", riskScore: 38, incidents: 45, assets: 670, coverage: 82 },
-  { region: "Africa", riskScore: 64, incidents: 112, assets: 420, coverage: 76 },
-];
-
-const riskDistributionData = [
-  { name: "Critical", value: 12, color: "#ef4444" },
-  { name: "High", value: 28, color: "#f97316" },
-  { name: "Medium", value: 35, color: "#eab308" },
-  { name: "Low", value: 25, color: "#22c55e" },
-];
-
-const radarData = [
-  { dimension: "Operational", score: 72, benchmark: 65 },
-  { dimension: "Financial", score: 58, benchmark: 60 },
-  { dimension: "Geopolitical", score: 85, benchmark: 70 },
-  { dimension: "Reputational", score: 45, benchmark: 50 },
-  { dimension: "Compliance", score: 62, benchmark: 75 },
-  { dimension: "Cyber", score: 78, benchmark: 68 },
-];
-
-// KPI Card Component
-function KPICard({
-  title,
-  value,
-  change,
-  changeType,
-  icon,
-  subtitle,
-}: {
-  title: string;
-  value: string | number;
-  change: string;
-  changeType: "positive" | "negative" | "neutral";
-  icon: React.ReactNode;
-  subtitle?: string;
-}) {
-  return (
-    <Card className="relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full" />
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-400">{title}</p>
-            <p className="text-3xl font-bold text-white">{value}</p>
-            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-          </div>
-          <div className="p-3 bg-gray-800/50 rounded-xl">{icon}</div>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          <span
-            className={`inline-flex items-center text-sm font-medium ${
-              changeType === "positive"
-                ? "text-emerald-400"
-                : changeType === "negative"
-                  ? "text-red-400"
-                  : "text-gray-400"
-            }`}
-          >
-            {changeType === "positive" ? (
-              <TrendUpIcon className="w-4 h-4 mr-1" />
-            ) : changeType === "negative" ? (
-              <TrendDownIcon className="w-4 h-4 mr-1" />
-            ) : (
-              <TrendNeutralIcon className="w-4 h-4 mr-1" />
-            )}
-            {change}
-          </span>
-          <span className="text-xs text-gray-500">vs last period</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Custom Tooltip
-function CustomTooltip({ active, payload, label }: any) {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-4 shadow-xl backdrop-blur-sm">
-        <p className="text-sm font-medium text-white mb-2">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-gray-400">{entry.name}:</span>
-            <span className="text-white font-medium">{entry.value}</span>
-          </div>
-        ))}
-      </div>
+  if (format === "json") {
+    content = JSON.stringify(data, null, 2);
+    mimeType = "application/json";
+  } else {
+    if (data.length === 0) return;
+    const headers = Object.keys(data[0] as Record<string, unknown>);
+    const rows = data.map((item) =>
+      headers.map((h) => String((item as Record<string, unknown>)[h] ?? "")).join(",")
     );
+    content = [headers.join(","), ...rows].join("\n");
+    mimeType = "text/csv";
   }
-  return null;
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename}.${format}`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
+// ============================================
+// ANALYTICS PAGE
+// ============================================
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState("30d");
-  const [selectedRegion, setSelectedRegion] = useState("all");
-  const [selectedRiskLevel, setSelectedRiskLevel] = useState("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [threatType, setThreatType] = useState<ThreatType>("all");
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
   const [activeTab, setActiveTab] = useState<"overview" | "trends" | "breakdown">("overview");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const timeSeriesData = useMemo(() => generateTimeSeriesData(), []);
+  const refresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  const autoRefresh = useAutoRefresh({
+    defaultInterval: 60,
+    onRefresh: refresh,
+    enabled: false,
+  });
+
+  // Generate time series data based on selected range
+  const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365;
+  const timeSeries = useMemo(() => generateTimeSeries(days), [days, refreshKey]);
+
+  // Filtered time series
+  const filteredTimeSeries = useMemo(() => {
+    if (threatType === "all") return timeSeries;
+    return timeSeries.map((d) => ({
+      ...d,
+      total: (d as unknown as Record<string, number>)[threatType] || d.total,
+    }));
+  }, [timeSeries, threatType]);
+
+  // Filtered regions
+  const filteredRegions = useMemo(() => {
+    if (regionFilter === "all") return regionHeatmap;
+    return regionHeatmap.filter((r) => r.code === regionFilter);
+  }, [regionFilter]);
+
+  // Radar data for category comparison
+  const radarData = useMemo(
+    () =>
+      categoryBreakdown.map((c) => ({
+        category: c.category.split(" ")[0] || c.category,
+        incidents: c.count,
+        severity: c.avgSeverity * 10,
+        percentage: c.percentage,
+      })),
+    []
+  );
+
+  const handleExport = (format: "csv" | "json") => {
+    const exportPayload = timeSeries.map((d) => ({
+      date: d.date,
+      total: d.total,
+      cyber: d.cyber,
+      infrastructure: d.infrastructure,
+      energy: d.energy,
+      geopolitical: d.geopolitical,
+      climate: d.climate,
+    }));
+    exportData(exportPayload, format, `atlas-analytics-${timeRange}`);
+  };
 
   return (
-    <MainLayout
-      title="Analytics Dashboard"
-      subtitle="Enterprise risk intelligence and strategic insights"
-    >
+    <MainLayout title="Analytics" subtitle="Enterprise risk intelligence and threat analysis">
       <div className="space-y-6">
-        {/* Header with Filters */}
+        {/* Header Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Tabs */}
           <div className="flex items-center gap-1 p-1 bg-gray-800/50 rounded-lg">
@@ -207,399 +148,351 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Filters & Actions */}
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
               <option value="7d">Last 7 days</option>
               <option value="30d">Last 30 days</option>
               <option value="90d">Last 90 days</option>
               <option value="1y">Last year</option>
-              <option value="custom">Custom range</option>
             </select>
             <select
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={threatType}
+              onChange={(e) => setThreatType(e.target.value as ThreatType)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Threats</option>
+              <option value="cyber">Cyber</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="energy">Energy</option>
+              <option value="geopolitical">Geopolitical</option>
+              <option value="climate">Climate</option>
+              <option value="supply_chain">Supply Chain</option>
+            </select>
+            <select
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value as RegionFilter)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
               <option value="all">All Regions</option>
-              <option value="apac">Asia Pacific</option>
-              <option value="emea">Europe & Middle East</option>
-              <option value="americas">Americas</option>
+              <option value="NA">North America</option>
+              <option value="EU">Europe</option>
+              <option value="APAC">Asia Pacific</option>
+              <option value="ME">Middle East</option>
+              <option value="SA">South America</option>
+              <option value="AF">Africa</option>
+              <option value="OC">Oceania</option>
             </select>
-            <select
-              value={selectedRiskLevel}
-              onChange={(e) => setSelectedRiskLevel(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+
+            {/* Export dropdown */}
+            <div className="relative group">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 hover:text-white hover:border-gray-600 transition-colors">
+                <DownloadIcon className="w-4 h-4" />
+                Export
+              </button>
+              <div className="absolute right-0 top-full mt-1 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-t-lg"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => handleExport("json")}
+                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-b-lg"
+                >
+                  Export JSON
+                </button>
+              </div>
+            </div>
+
+            {/* Auto-refresh */}
+            <button
+              onClick={autoRefresh.toggleActive}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                autoRefresh.isActive
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600"
+              }`}
             >
-              <option value="all">All Risk Levels</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <Button variant="secondary" size="sm" className="gap-2">
-              <DownloadIcon className="w-4 h-4" />
-              Export
-            </Button>
-            <Button variant="primary" size="sm" className="gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${autoRefresh.isActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
+              {autoRefresh.isActive ? `Auto ${autoRefresh.countdown}s` : "Auto-refresh"}
+            </button>
+
+            <button
+              onClick={autoRefresh.manualRefresh}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
+              title="Refresh now"
+            >
               <RefreshIcon className="w-4 h-4" />
-              Refresh
-            </Button>
+            </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard
-            title="Global Risk Score"
-            value="67.4"
-            change="+2.3%"
-            changeType="negative"
-            subtitle="Composite index"
-            icon={<ShieldIcon className="w-6 h-6 text-blue-400" />}
-          />
-          <KPICard
-            title="Active Alerts"
-            value="142"
-            change="-12%"
-            changeType="positive"
-            subtitle="Across all regions"
-            icon={<AlertIcon className="w-6 h-6 text-amber-400" />}
-          />
-          <KPICard
-            title="Entities Monitored"
-            value="8,432"
-            change="+156"
-            changeType="neutral"
-            subtitle="Organizations & assets"
-            icon={<BuildingIcon className="w-6 h-6 text-emerald-400" />}
-          />
-          <KPICard
-            title="Model Confidence"
-            value="94.2%"
-            change="+1.8%"
-            changeType="positive"
-            subtitle="ML prediction accuracy"
-            icon={<BrainIcon className="w-6 h-6 text-purple-400" />}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {analyticsKPIs.map((kpi) => (
+            <div key={kpi.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors">
+              <p className="text-xs text-gray-400 mb-1">{kpi.label}</p>
+              <p className="text-xl font-bold text-white">
+                {kpi.value}{kpi.unit}
+              </p>
+              <div className="flex items-center gap-1 mt-1">
+                {kpi.trendPercent > 0 ? (
+                  <TrendUpIcon className="w-3 h-3 text-red-400" />
+                ) : (
+                  <TrendDownIcon className="w-3 h-3 text-emerald-400" />
+                )}
+                <span className={`text-xs ${
+                  kpi.id === "resolution-time" || kpi.id === "active-incidents"
+                    ? (kpi.trendPercent < 0 ? "text-emerald-400" : "text-red-400")
+                    : (kpi.trendPercent > 0 ? "text-emerald-400" : "text-red-400")
+                }`}>
+                  {kpi.trendPercent > 0 ? "+" : ""}{kpi.trendPercent}%
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Main Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Risk Trend Analysis - Full Width on Large */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
+        {/* Main Content Based on Active Tab */}
+        {activeTab === "overview" && (
+          <>
+            {/* Charts Row 1 */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Incident Trend */}
+              <div className="lg:col-span-2 bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Incident Trend</h2>
+                    <p className="text-xs text-gray-400">{days}-day view across categories</p>
+                  </div>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={filteredTimeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="aGradTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="aGradCyber" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="aGradGeo" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickFormatter={(v: string) => v.slice(5)} />
+                      <YAxis stroke="#6b7280" fontSize={10} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                        labelStyle={{ color: "#9ca3af" }}
+                      />
+                      <Area type="monotone" dataKey="total" stroke="#3b82f6" fill="url(#aGradTotal)" strokeWidth={2} name="Total" />
+                      {threatType === "all" && (
+                        <>
+                          <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="url(#aGradCyber)" strokeWidth={1.5} name="Cyber" />
+                          <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="url(#aGradGeo)" strokeWidth={1.5} name="Geopolitical" />
+                        </>
+                      )}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded" /> Total</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-purple-500 rounded" /> Cyber</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-red-500 rounded" /> Geopolitical</span>
+                </div>
+              </div>
+
+              {/* Category Breakdown Pie */}
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold text-white mb-1">Category Breakdown</h2>
+                <p className="text-xs text-gray-400 mb-4">By threat type</p>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={75}
+                        paddingAngle={2}
+                        dataKey="count"
+                        nameKey="category"
+                      >
+                        {categoryBreakdown.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {categoryBreakdown.map((cat) => (
+                    <div key={cat.category} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="text-xs text-gray-400">{cat.category}</span>
+                      </div>
+                      <span className="text-xs font-medium text-white">{cat.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Charts Row 2 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Region Bar Chart */}
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold text-white mb-1">Regional Incidents</h2>
+                <p className="text-xs text-gray-400 mb-4">Incidents by geographic region</p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={filteredRegions} layout="vertical" margin={{ left: 10, right: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis type="number" stroke="#6b7280" fontSize={10} />
+                      <YAxis type="category" dataKey="region" stroke="#6b7280" fontSize={10} width={100} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                      />
+                      <Bar dataKey="incidents" name="Incidents" radius={[0, 4, 4, 0]}>
+                        {filteredRegions.map((entry, i) => (
+                          <Cell
+                            key={i}
+                            fill={entry.severity >= 70 ? "#ef4444" : entry.severity >= 50 ? "#f59e0b" : "#10b981"}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Radar Chart */}
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold text-white mb-1">Threat Profile</h2>
+                <p className="text-xs text-gray-400 mb-4">Multi-dimensional threat analysis</p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#374151" />
+                      <PolarAngleAxis dataKey="category" stroke="#9ca3af" fontSize={10} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#4b5563" fontSize={9} />
+                      <Radar name="Incidents" dataKey="severity" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                      <Radar name="Share %" dataKey="percentage" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
+                      <Legend wrapperStyle={{ fontSize: "11px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "trends" && (
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <CardTitle>Risk Trend Analysis</CardTitle>
-                <p className="text-sm text-gray-500 mt-1">
-                  Multi-dimensional risk scores over time
-                </p>
+                <h2 className="text-lg font-semibold text-white">Detailed Trend Analysis</h2>
+                <p className="text-xs text-gray-400">All threat categories over {days} days</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="px-3 py-1 text-xs bg-gray-800 rounded-md text-gray-400 hover:text-white">
-                  Line
-                </button>
-                <button className="px-3 py-1 text-xs bg-blue-600 rounded-md text-white">
-                  Area
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={timeSeriesData}>
-                  <defs>
-                    <linearGradient id="colorOperational" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorFinancial" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorGeopolitical" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+            </div>
+            <div className="h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} />
-                  <YAxis stroke="#9ca3af" fontSize={12} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="operational"
-                    name="Operational"
-                    stroke="#3b82f6"
-                    fillOpacity={1}
-                    fill="url(#colorOperational)"
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickFormatter={(v: string) => v.slice(5)} />
+                  <YAxis stroke="#6b7280" fontSize={10} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="financial"
-                    name="Financial"
-                    stroke="#22c55e"
-                    fillOpacity={1}
-                    fill="url(#colorFinancial)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="geopolitical"
-                    name="Geopolitical"
-                    stroke="#ef4444"
-                    fillOpacity={1}
-                    fill="url(#colorGeopolitical)"
-                  />
+                  <Legend wrapperStyle={{ fontSize: "11px" }} />
+                  <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name="Cyber" />
+                  <Area type="monotone" dataKey="infrastructure" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} name="Infrastructure" />
+                  <Area type="monotone" dataKey="energy" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} strokeWidth={2} name="Energy" />
+                  <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} name="Geopolitical" />
+                  <Area type="monotone" dataKey="climate" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} strokeWidth={2} name="Climate" />
                 </AreaChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Risk Distribution Pie Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Distribution</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">By severity level</p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={riskDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {riskDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {riskDistributionData.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-gray-400">{item.name}</span>
-                    <span className="text-sm font-medium text-white ml-auto">
-                      {item.value}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Second Row of Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sector Risk Bar Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk by Sector</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                Industry-specific risk assessment
-              </p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sectorRiskData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis type="number" stroke="#9ca3af" fontSize={12} domain={[0, 100]} />
-                  <YAxis
-                    type="category"
-                    dataKey="sector"
-                    stroke="#9ca3af"
-                    fontSize={12}
-                    width={120}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="risk" name="Risk Score" radius={[0, 4, 4, 0]}>
-                    {sectorRiskData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          entry.risk >= 70
-                            ? "#ef4444"
-                            : entry.risk >= 50
-                              ? "#f97316"
-                              : "#22c55e"
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Radar Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Profile vs Benchmark</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                Multidimensional comparison
-              </p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="#374151" />
-                  <PolarAngleAxis dataKey="dimension" stroke="#9ca3af" fontSize={11} />
-                  <PolarRadiusAxis
-                    angle={30}
-                    domain={[0, 100]}
-                    stroke="#9ca3af"
-                    fontSize={10}
-                  />
-                  <Radar
-                    name="Your Score"
-                    dataKey="score"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
-                    fillOpacity={0.3}
-                  />
-                  <Radar
-                    name="Industry Benchmark"
-                    dataKey="benchmark"
-                    stroke="#9ca3af"
-                    fill="#9ca3af"
-                    fillOpacity={0.1}
-                  />
-                  <Legend />
-                  <Tooltip content={<CustomTooltip />} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Regional Analysis Table */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Regional Risk Analysis</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                Comprehensive breakdown by geographic region
-              </p>
             </div>
-            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-              View Full Report
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
+          </div>
+        )}
+
+        {activeTab === "breakdown" && (
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-lg font-semibold text-white">Regional Risk Breakdown</h2>
+              <p className="text-xs text-gray-400">Comprehensive analysis by region</p>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800 bg-gray-800/30">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Region
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Risk Score
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Incidents (30d)
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Monitored Assets
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Coverage
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Region</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Incidents</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Severity</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Trend</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {regionData.map((region) => (
-                    <tr
-                      key={region.region}
-                      className="hover:bg-gray-800/50 transition-colors"
-                    >
+                  {regionHeatmap.map((region) => (
+                    <tr key={region.code} className="hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center">
-                            <GlobeIcon className="w-4 h-4 text-gray-400" />
-                          </div>
-                          <span className="text-sm font-medium text-white">
-                            {region.region}
-                          </span>
-                        </div>
+                        <span className="text-sm font-medium text-white">{region.region}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-gray-700 rounded-full max-w-[100px]">
-                            <div
-                              className={`h-full rounded-full ${
-                                region.riskScore >= 70
-                                  ? "bg-red-500"
-                                  : region.riskScore >= 50
-                                    ? "bg-amber-500"
-                                    : "bg-emerald-500"
-                              }`}
-                              style={{ width: `${region.riskScore}%` }}
-                            />
-                          </div>
-                          <span
-                            className={`text-sm font-semibold ${
-                              region.riskScore >= 70
-                                ? "text-red-400"
-                                : region.riskScore >= 50
-                                  ? "text-amber-400"
-                                  : "text-emerald-400"
-                            }`}
-                          >
-                            {region.riskScore}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
-                        {region.incidents.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
-                        {region.assets.toLocaleString()}
+                        <span className="text-sm text-gray-300">{region.incidents}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-gray-700 rounded-full max-w-[60px]">
+                          <div className="w-16 h-2 bg-gray-700 rounded-full">
                             <div
-                              className="h-full bg-blue-500 rounded-full"
-                              style={{ width: `${region.coverage}%` }}
+                              className={`h-full rounded-full ${
+                                region.severity >= 70 ? "bg-red-500" :
+                                region.severity >= 50 ? "bg-amber-500" : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${region.severity}%` }}
                             />
                           </div>
-                          <span className="text-sm text-gray-400">
-                            {region.coverage}%
-                          </span>
+                          <span className="text-xs text-gray-400">{region.severity}/100</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            region.riskScore >= 70
-                              ? "bg-red-500/20 text-red-400"
-                              : region.riskScore >= 50
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-emerald-500/20 text-emerald-400"
-                          }`}
-                        >
-                          {region.riskScore >= 70
-                            ? "High Alert"
-                            : region.riskScore >= 50
-                              ? "Monitoring"
-                              : "Stable"}
+                        <span className={`flex items-center gap-1 text-xs ${
+                          region.trend === "up" ? "text-red-400" :
+                          region.trend === "down" ? "text-emerald-400" : "text-gray-400"
+                        }`}>
+                          {region.trend === "up" ? <TrendUpIcon className="w-3 h-3" /> :
+                           region.trend === "down" ? <TrendDownIcon className="w-3 h-3" /> :
+                           <span className="w-3 h-0.5 bg-gray-500 rounded" />}
+                          {region.trend}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          region.severity >= 70 ? "bg-red-500/20 text-red-400" :
+                          region.severity >= 50 ? "bg-amber-500/20 text-amber-400" :
+                          "bg-emerald-500/20 text-emerald-400"
+                        }`}>
+                          {region.severity >= 70 ? "High Alert" : region.severity >= 50 ? "Monitoring" : "Stable"}
                         </span>
                       </td>
                     </tr>
@@ -607,243 +500,16 @@ export default function AnalyticsPage() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity & Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Assessments */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Recent Risk Assessments</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">Latest entity evaluations</p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-gray-800">
-                {[
-                  {
-                    entity: "Taiwan Semiconductor Supply Chain",
-                    type: "Supply Chain",
-                    score: 78,
-                    confidence: 92,
-                    change: "+5",
-                    time: "2 hours ago",
-                  },
-                  {
-                    entity: "European Energy Grid Infrastructure",
-                    type: "Critical Infrastructure",
-                    score: 65,
-                    confidence: 88,
-                    change: "-3",
-                    time: "4 hours ago",
-                  },
-                  {
-                    entity: "South China Sea Shipping Routes",
-                    type: "Maritime Logistics",
-                    score: 82,
-                    confidence: 95,
-                    change: "+8",
-                    time: "6 hours ago",
-                  },
-                  {
-                    entity: "Global Rare Earth Supply Network",
-                    type: "Commodity",
-                    score: 71,
-                    confidence: 87,
-                    change: "+2",
-                    time: "8 hours ago",
-                  },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-gray-800/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          item.score >= 70
-                            ? "bg-red-500/20"
-                            : item.score >= 50
-                              ? "bg-amber-500/20"
-                              : "bg-emerald-500/20"
-                        }`}
-                      >
-                        <span
-                          className={`text-sm font-bold ${
-                            item.score >= 70
-                              ? "text-red-400"
-                              : item.score >= 50
-                                ? "text-amber-400"
-                                : "text-emerald-400"
-                          }`}
-                        >
-                          {item.score}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{item.entity}</p>
-                        <p className="text-xs text-gray-500">{item.type}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <p className="text-sm text-gray-400">
-                          Confidence: <span className="text-white">{item.confidence}%</span>
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            item.change.startsWith("+") ? "text-red-400" : "text-emerald-400"
-                          }`}
-                        >
-                          {item.change} from previous
-                        </p>
-                      </div>
-                      <span className="text-xs text-gray-500 w-20 text-right">{item.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Insights */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <BrainIcon className="w-5 h-5 text-purple-400" />
-                <CardTitle>AI Insights</CardTitle>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">ML-powered recommendations</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  {
-                    type: "warning",
-                    title: "Supply Chain Alert",
-                    description:
-                      "Elevated risk detected in semiconductor logistics. Consider diversifying suppliers.",
-                    confidence: 94,
-                  },
-                  {
-                    type: "info",
-                    title: "Pattern Detected",
-                    description:
-                      "Similar risk trajectory to Q2 2023 energy crisis. Monitor European markets.",
-                    confidence: 87,
-                  },
-                  {
-                    type: "success",
-                    title: "Risk Reduction",
-                    description:
-                      "Latin America risk profile improved 15% following policy changes.",
-                    confidence: 91,
-                  },
-                ].map((insight, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-4 rounded-lg border ${
-                      insight.type === "warning"
-                        ? "bg-amber-500/10 border-amber-500/30"
-                        : insight.type === "info"
-                          ? "bg-blue-500/10 border-blue-500/30"
-                          : "bg-emerald-500/10 border-emerald-500/30"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <p
-                        className={`text-sm font-medium ${
-                          insight.type === "warning"
-                            ? "text-amber-400"
-                            : insight.type === "info"
-                              ? "text-blue-400"
-                              : "text-emerald-400"
-                        }`}
-                      >
-                        {insight.title}
-                      </p>
-                      <span className="text-xs text-gray-500">{insight.confidence}%</span>
-                    </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      {insight.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
 }
 
-// Icon Components
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-      />
-    </svg>
-  );
-}
-
-function AlertIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-      />
-    </svg>
-  );
-}
-
-function BuildingIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-      />
-    </svg>
-  );
-}
-
-function BrainIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-      />
-    </svg>
-  );
-}
-
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
-  );
-}
-
+// ============================================
+// ICONS
+// ============================================
 function TrendUpIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -860,23 +526,10 @@ function TrendDownIcon({ className }: { className?: string }) {
   );
 }
 
-function TrendNeutralIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-    </svg>
-  );
-}
-
 function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
     </svg>
   );
 }
@@ -884,12 +537,7 @@ function DownloadIcon({ className }: { className?: string }) {
 function RefreshIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
   );
 }

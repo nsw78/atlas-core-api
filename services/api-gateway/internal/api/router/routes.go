@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"atlas-core-api/services/api-gateway/internal/infrastructure/circuitbreaker"

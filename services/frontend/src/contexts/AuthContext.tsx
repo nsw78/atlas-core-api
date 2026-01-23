@@ -5,17 +5,16 @@ import { useRouter, usePathname } from "next/navigation";
 
 interface User {
   id: string;
-  email: string;
-  name: string;
-  role: string;
-  avatar?: string;
+  username: string;
+  roles: string[];
+  permissions: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -24,33 +23,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = "atlas-auth";
 const PUBLIC_PATHS = ["/login", "/forgot-password"];
 
-// Mock user for demo (admin/admin)
-const MOCK_USERS = [
-  {
-    id: "1",
-    email: "admin",
-    password: "admin",
-    name: "Administrator",
-    role: "admin",
-    avatar: undefined,
-  },
-  {
-    id: "2",
-    email: "admin@atlas.com",
-    password: "admin",
-    name: "Admin User",
-    role: "admin",
-    avatar: undefined,
-  },
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  // Check for existing session on mount
   useEffect(() => {
     const checkAuth = () => {
       try {
@@ -72,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
-  // Redirect logic
   useEffect(() => {
     if (isLoading) return;
 
@@ -86,39 +63,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, isLoading, pathname, router]);
 
   const login = useCallback(
-    async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
       setIsLoading(true);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
+        if (response.ok) {
+          const body = await response.json();
+          const userData: User = body.data;
 
-      const foundUser = MOCK_USERS.find(
-        (u) => (u.email === email || u.email === email.toLowerCase()) && u.password === password
-      );
+          const session = {
+            user: userData,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
-      if (foundUser) {
-        const userData: User = {
-          id: foundUser.id,
-          email: foundUser.email,
-          name: foundUser.name,
-          role: foundUser.role,
-          avatar: foundUser.avatar,
-        };
-
-        // Store session (24 hours)
-        const session = {
-          user: userData,
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-
-        setUser(userData);
+          setUser(userData);
+          return { success: true };
+        } else {
+          const errorBody = await response.json();
+          return { success: false, error: errorBody.error || "Login failed" };
+        }
+      } catch (error) {
+        return { success: false, error: "Network error or server is down" };
+      } finally {
         setIsLoading(false);
-        return { success: true };
       }
-
-      setIsLoading(false);
-      return { success: false, error: "Invalid email or password" };
     },
     []
   );
@@ -126,10 +103,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);
+    // TODO: Call logout endpoint on the backend
     router.push("/login");
   }, [router]);
 
-  // Show nothing while checking auth on protected pages
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">

@@ -194,6 +194,19 @@ INSERT INTO permissions (name, resource, action, description) VALUES
     ('admin:all', '*', '*', 'Full administrative access')
 ON CONFLICT (name) DO NOTHING;
 
+-- Insert a default admin user (password: "admin")
+WITH admin_user AS (
+    INSERT INTO users (username, email, password_hash, first_name, last_name, is_active, is_verified) VALUES
+        ('admin', 'admin@atlas.com', '$2a$12$7JgN5s9sJ.v4g.e8f.eE2u.m4o9Z.d.zY.gY4f.cR.jY3e.xZ8X.e', 'Admin', 'User', true, true)
+    ON CONFLICT (username) DO NOTHING
+    RETURNING id
+)
+INSERT INTO user_roles (user_id, role_id)
+SELECT admin_user.id, roles.id
+FROM admin_user, roles
+WHERE roles.name = 'admin'
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
 COMMENT ON TABLE users IS 'User accounts for authentication and authorization';
 COMMENT ON TABLE risk_assessments IS 'Multi-dimensional risk assessment records';
 COMMENT ON TABLE audit_logs IS 'Immutable audit trail for compliance';

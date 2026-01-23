@@ -51,6 +51,7 @@
     "loginTitle": "Sign in to ATLAS",
     "loginSubtitle": "Strategic Intelligence Platform",
     "email": "Email address",
+    "username": "Username",
     "password": "Password",
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot password?",

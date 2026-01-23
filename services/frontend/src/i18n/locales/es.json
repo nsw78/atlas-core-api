@@ -51,6 +51,7 @@
     "loginTitle": "Acceder a ATLAS",
     "loginSubtitle": "Plataforma de Inteligencia Estrategica",
     "email": "Correo electronico",
+    "username": "Nombre de usuario",
     "password": "Contrasena",
     "rememberMe": "Recordarme",
     "forgotPassword": "Olvido su contrasena?",

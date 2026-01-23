@@ -14,7 +14,17 @@
       "Bash(powershell.exe -Command \"docker ps -a\")",
       "Bash(npm install)",
       "Bash(powershell.exe -Command \"cd 'c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend'; npm install:*)",
-      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend''; npm run build 2>&1\")"
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend''; npm run build 2>&1\")",
+      "Bash(npx next build:*)",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend''; npx next build 2>&1\")",
+      "Bash(powershell.exe -Command \"docker info 2>&1 | Select-Object -First 5\")",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose up --build -d 2>&1 | Select-Object -Last 60\")",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build api-gateway 2>&1 | Select-Object -Last 20\")",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build frontend 2>&1 | Select-Object -Last 30\")",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build 2>&1 | Select-String -Pattern ''ERROR|Built|error'' | Select-Object -Last 40\")",
+      "Bash(powershell.exe -Command \"Get-Content ''C:\\\\Users\\\\T0BFB~1.NWA\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-t-nwa-tfsports-Documents-Projetos-IA-atlas-core-api\\\\tasks\\\\b0220bc.output'' | Select-Object -Last 50\")",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build 2>&1 | Out-String\")",
+      "Bash(powershell.exe -Command \"docker images --filter ''reference=atlas-core-api*'' --format ''{{.Repository}}:{{.Tag}} {{.Size}}'' 2>&1\")"
     ]
   }
 }

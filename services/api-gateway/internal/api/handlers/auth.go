@@ -3,8 +3,18 @@ package handlers
 import (
 	"net/http"
 
+	"atlas-core-api/services/api-gateway/internal/api/proxy"
+
 	"github.com/gin-gonic/gin"
 )
+
+type AuthHandler struct {
+	iamService *proxy.Service
+}
+
+func NewAuthHandler(iamService *proxy.Service) *AuthHandler {
+	return &AuthHandler{iamService: iamService}
+}
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -27,50 +37,11 @@ type User struct {
 	Permissions []string `json:"permissions"`
 }
 
-func Login(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// TODO: Call IAM service for authentication
-	// For now, return mock response
-	accessToken := "mock-access-token"
-	refreshToken := "mock-refresh-token"
-
-	// Set httpOnly cookies for security
-	c.SetCookie(
-		"access_token",      // name
-		accessToken,         // value
-		3600,                // maxAge (1 hour)
-		"/",                 // path
-		"",                  // domain (empty = current domain)
-		true,                // secure (HTTPS only)
-		true,                // httpOnly (not accessible via JavaScript)
-	)
-
-	c.SetCookie(
-		"refresh_token",
-		refreshToken,
-		86400*7,             // maxAge (7 days)
-		"/",
-		"",
-		true,
-		true,
-	)
-
-	response := User{
-		ID:          "user-123",
-		Username:    req.Username,
-		Roles:       []string{"analyst"},
-		Permissions: []string{"read:risks", "write:scenarios"},
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": response})
+func (h *AuthHandler) Login(c *gin.Context) {
+	h.iamService.ForwardRequest(c)
 }
 
-func RefreshToken(c *gin.Context) {
-	// TODO: Implement token refresh
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	// TODO: Implement token refresh by proxying to iam-service
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
 }
