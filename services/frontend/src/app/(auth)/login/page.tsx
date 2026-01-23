@@ -1,33 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button, Card, CardContent } from "@/components/atoms";
-import { useAuthStore } from "@/store";
+import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/i18n";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { setUser } = useAuthStore();
+  const { login } = useAuth();
+  const { t } = useI18n();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // Simulate login - replace with actual OAuth flow
-    setTimeout(() => {
-      setUser({
-        id: "1",
-        email: "analyst@atlas.gov",
-        name: "John Analyst",
-        role: "analyst",
-        permissions: ["read", "create", "simulate"],
-        organization: "Strategic Intelligence Division",
-        lastLogin: new Date().toISOString(),
-        createdAt: "2024-01-01T00:00:00Z",
-      });
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.error || t("auth.invalidCredentials"));
+    }
+    setIsLoading(false);
+  };
 
-      router.push("/dashboard");
-    }, 1000);
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    const result = await login("admin", "admin");
+    if (!result.success) {
+      setError(result.error || t("auth.invalidCredentials"));
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -40,7 +45,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-white">ATLAS</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Strategic Intelligence Platform
+            {t("auth.loginSubtitle")}
           </p>
         </div>
 
@@ -48,23 +53,56 @@ export default function LoginPage() {
           <CardContent className="p-8">
             <div className="text-center mb-6">
               <h2 className="text-lg font-semibold text-white">
-                Secure Access
+                {t("auth.welcomeBack")}
               </h2>
               <p className="text-sm text-gray-400 mt-1">
-                Authenticate with your government credentials
+                {t("auth.secureAccess")}
               </p>
             </div>
 
-            <div className="space-y-4">
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  {t("auth.email")}
+                </label>
+                <input
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin"
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  {t("auth.password")}
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="admin"
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
               <Button
-                onClick={handleLogin}
+                type="submit"
                 isLoading={isLoading}
                 className="w-full"
               >
-                Sign in with SSO
+                {isLoading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
+            </form>
 
-              <div className="relative">
+            <div className="mt-4">
+              <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-700" />
                 </div>
@@ -75,11 +113,11 @@ export default function LoginPage() {
 
               <Button
                 variant="secondary"
-                onClick={handleLogin}
+                onClick={handleDemoLogin}
                 isLoading={isLoading}
                 className="w-full"
               >
-                Demo Access (Development)
+                Demo Access (admin/admin)
               </Button>
             </div>
 

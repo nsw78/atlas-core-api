@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/utils";
-import { useAuthStore, useUIStore } from "@/store";
+import { useUIStore } from "@/store";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
   {
@@ -35,7 +36,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { sidebarOpen } = useUIStore();
 
   if (!sidebarOpen) return null;

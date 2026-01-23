@@ -6,7 +6,15 @@
       "Bash(docker-compose:*)",
       "Bash(ls:*)",
       "Bash(powershell -Command:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(where:*)",
+      "Bash(\"/c/Program Files/Docker/Docker/resources/bin/docker\" version)",
+      "Bash(echo:*)",
+      "Bash(cmd.exe /c \"docker ps -a\")",
+      "Bash(powershell.exe -Command \"docker ps -a\")",
+      "Bash(npm install)",
+      "Bash(powershell.exe -Command \"cd 'c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend'; npm install:*)",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api\\\\services\\\\frontend''; npm run build 2>&1\")"
     ]
   }
 }

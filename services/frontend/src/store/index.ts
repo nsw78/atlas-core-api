@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => set({ user: null, isAuthenticated: false }),
     }),
-    { name: "atlas-auth" }
+    { name: "atlas-auth-store" }
   )
 );
 
