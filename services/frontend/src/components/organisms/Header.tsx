@@ -63,17 +63,17 @@ export function Header({ title, subtitle }: HeaderProps) {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
               >
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-medium">
-                  {user.name.charAt(0).toUpperCase()}
+                  {user.username.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm text-gray-300">{user.name}</span>
+                <span className="text-sm text-gray-300">{user.username}</span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />
               </button>
 
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 z-50">
                   <div className="px-4 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">{user.name}</p>
-                    <p className="text-xs text-gray-400">{user.email}</p>
+                    <p className="text-sm font-medium text-white">{user.username}</p>
+                    <p className="text-xs text-gray-400">{user.username}@atlas.local</p>
                   </div>
                   <button
                     onClick={() => {

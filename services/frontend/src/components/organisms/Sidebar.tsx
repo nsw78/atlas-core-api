@@ -84,15 +84,15 @@ export function Sidebar() {
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center">
             <span className="text-sm font-medium text-white">
-              {user?.name?.charAt(0) || "U"}
+              {user?.username?.charAt(0) || "U"}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
-              {user?.name || "User"}
+              {user?.username || "User"}
             </p>
             <p className="text-xs text-gray-500 capitalize">
-              {user?.role || "analyst"}
+              {user?.roles?.[0] || "analyst"}
             </p>
           </div>
         </div>

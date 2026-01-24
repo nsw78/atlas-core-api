@@ -35,13 +35,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.authService.Login(req.Username, req.Password)
+	user, accessToken, refreshToken, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Set httpOnly cookies instead of returning tokens in response
+	// Set httpOnly cookies
 	c.SetCookie(
 		"access_token",
 		accessToken,
@@ -62,7 +62,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		true,
 	)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	// Return user data in response
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id": user.ID,
+			"username": user.Username,
+			"roles": user.Roles,
+			"permissions": []string{}, // TODO: Get actual permissions
+		},
+		"access_token": accessToken,
+		"refresh_token": refreshToken,
+		"token_type": "Bearer",
+		"expires_in": 3600,
+	})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
