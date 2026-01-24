@@ -18,6 +18,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { t } = useI18n();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter((n) => !n.acknowledged).length;
 
   return (
@@ -41,14 +42,71 @@ export function Header({ title, subtitle }: HeaderProps) {
           <LanguageSwitcher />
 
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <BellIcon className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-medium flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="relative"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <BellIcon className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-medium flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                <div className="p-4 border-b border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-white">{t("dashboard.notifications.title")}</h3>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  {unreadCount > 0 && (
+                    <button className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                      {t("dashboard.notifications.markAllRead")}
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.slice(0, 5).map((notification) => (
+                      <div key={notification.id} className={`p-3 border-b border-gray-700 hover:bg-gray-700/50 ${!notification.acknowledged ? 'bg-blue-500/5' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 ${!notification.acknowledged ? 'bg-blue-400' : 'bg-gray-500'}`} />
+                          <div className="flex-1">
+                            <p className="text-sm text-white">{notification.title}</p>
+                            <p className="text-xs text-gray-400 mt-1">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">{formatDate(notification.timestamp, "MMM d, HH:mm")}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-400">
+                      <p className="text-sm">{t("dashboard.notifications.noNotifications")}</p>
+                    </div>
+                  )}
+                </div>
+                {notifications.length > 5 && (
+                  <div className="p-3 border-t border-gray-700">
+                    <button className="text-sm text-blue-400 hover:text-blue-300">
+                      {t("dashboard.notifications.viewAll")}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
-          </Button>
+          </div>
 
           {/* Current Date */}
           <span className="text-sm text-gray-400">

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useI18n } from "@/contexts/I18nContext";
 import {
   generateTimeSeries,
   analyticsKPIs,
@@ -66,6 +67,7 @@ function exportData(data: unknown[], format: "csv" | "json", filename: string) {
 // ANALYTICS PAGE
 // ============================================
 export default function AnalyticsPage() {
+  const { t } = useI18n();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [threatType, setThreatType] = useState<ThreatType>("all");
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
@@ -127,7 +129,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <MainLayout title="Analytics" subtitle="Enterprise risk intelligence and threat analysis">
+    <MainLayout title={t("analytics.title")} subtitle={t("analytics.subtitle")}>
       <div className="space-y-6">
         {/* Header Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -143,7 +145,7 @@ export default function AnalyticsPage() {
                     : "text-gray-400 hover:text-white hover:bg-gray-700/50"
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {t(`analytics.${tab}`)}
               </button>
             ))}
           </div>
@@ -165,7 +167,7 @@ export default function AnalyticsPage() {
               onChange={(e) => setThreatType(e.target.value as ThreatType)}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="all">All Threats</option>
+              <option value="all">{t("common.all")} Threats</option>
               <option value="cyber">Cyber</option>
               <option value="infrastructure">Infrastructure</option>
               <option value="energy">Energy</option>
@@ -178,7 +180,7 @@ export default function AnalyticsPage() {
               onChange={(e) => setRegionFilter(e.target.value as RegionFilter)}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="all">All Regions</option>
+              <option value="all">{t("common.all")} Regions</option>
               <option value="NA">North America</option>
               <option value="EU">Europe</option>
               <option value="APAC">Asia Pacific</option>
@@ -199,13 +201,13 @@ export default function AnalyticsPage() {
                   onClick={() => handleExport("csv")}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-t-lg"
                 >
-                  Export CSV
+                  {t("common.export")} CSV
                 </button>
                 <button
                   onClick={() => handleExport("json")}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-b-lg"
                 >
-                  Export JSON
+                  {t("common.export")} JSON
                 </button>
               </div>
             </div>
@@ -315,8 +317,8 @@ export default function AnalyticsPage() {
 
               {/* Category Breakdown Pie */}
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-                <h2 className="text-lg font-semibold text-white mb-1">Category Breakdown</h2>
-                <p className="text-xs text-gray-400 mb-4">By threat type</p>
+                <h2 className="text-lg font-semibold text-white mb-1">{t("analytics.breakdown")}</h2>
+                <p className="text-xs text-gray-400 mb-4">{t("analytics.byThreatType")}</p>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -358,8 +360,8 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Region Bar Chart */}
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-                <h2 className="text-lg font-semibold text-white mb-1">Regional Incidents</h2>
-                <p className="text-xs text-gray-400 mb-4">Incidents by geographic region</p>
+                <h2 className="text-lg font-semibold text-white mb-1">{t("analytics.regionalIncidents")}</h2>
+                <p className="text-xs text-gray-400 mb-4">{t("analytics.incidentsByRegion")}</p>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={filteredRegions} layout="vertical" margin={{ left: 10, right: 10 }}>
@@ -438,7 +440,7 @@ export default function AnalyticsPage() {
         {activeTab === "breakdown" && (
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-lg font-semibold text-white">Regional Risk Breakdown</h2>
+              <h2 className="text-lg font-semibold text-white">{t("analytics.riskByRegion")}</h2>
               <p className="text-xs text-gray-400">Comprehensive analysis by region</p>
             </div>
             <div className="overflow-x-auto">

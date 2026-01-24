@@ -2,12 +2,14 @@
 
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function CompliancePage() {
+  const { t } = useI18n();
   return (
     <MainLayout
-      title="Compliance & Audit"
-      subtitle="Regulatory compliance and activity logging"
+      title={t("compliance.title")}
+      subtitle={t("compliance.subtitle")}
     >
       <div className="space-y-6">
         {/* Compliance Status Grid */}

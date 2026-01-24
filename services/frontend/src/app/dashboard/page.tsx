@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useI18n } from "@/i18n";
 import { generateTimeSeries, analyticsKPIs } from "@/data/analytics";
 import {
   severityConfig,
@@ -82,20 +83,20 @@ function AlertModal({
         <div className="p-6 space-y-6">
           {/* Description */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">Description</h3>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.alertModal.description")}</h3>
             <p className="text-sm text-gray-400 leading-relaxed">{alert.description}</p>
           </div>
 
           {/* Metadata Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetadataItem label="Source" value={alert.source} />
-            <MetadataItem label="Region" value={alert.region} />
-            <MetadataItem label="Country" value={alert.country || "N/A"} />
-            <MetadataItem label="Impact Score" value={`${alert.estimatedImpactScore}/100`} highlight />
-            <MetadataItem label="Status" value={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)} />
-            <MetadataItem label="Reported" value={getTimeAgo(alert.timestamp)} />
-            <MetadataItem label="Last Update" value={getTimeAgo(alert.updatedAt)} />
-            <MetadataItem label="Entities" value={`${alert.relatedEntities.length} linked`} />
+            <MetadataItem label={t("dashboard.alertModal.source")} value={alert.source} />
+            <MetadataItem label={t("dashboard.alertModal.region")} value={alert.region} />
+            <MetadataItem label={t("dashboard.alertModal.country")} value={alert.country || "N/A"} />
+            <MetadataItem label={t("dashboard.alertModal.impactScore")} value={`${alert.estimatedImpactScore}/100`} highlight />
+            <MetadataItem label={t("dashboard.alertModal.status")} value={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)} />
+            <MetadataItem label={t("dashboard.alertModal.reported")} value={getTimeAgo(alert.timestamp)} />
+            <MetadataItem label={t("dashboard.alertModal.lastUpdate")} value={getTimeAgo(alert.updatedAt)} />
+            <MetadataItem label={t("dashboard.alertModal.entities")} value={`${alert.relatedEntities.length} ${t("dashboard.alertModal.linked")}`} />
           </div>
 
           {/* Impact */}
@@ -165,20 +166,20 @@ function AlertModal({
             onClick={() => { onDismiss(alert.id); onClose(); }}
             className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
           >
-            Dismiss
+            {t("dashboard.alertModal.dismiss")}
           </button>
           <div className="flex items-center gap-3">
             <button
               onClick={() => { onAcknowledge(alert.id); onClose(); }}
               className="px-4 py-2 text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/30 transition-colors"
             >
-              Acknowledge
+              {t("dashboard.alertModal.acknowledge")}
             </button>
             <button
               onClick={() => { onInvestigate(alert.id); onClose(); }}
               className="px-4 py-2 text-sm bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 transition-colors"
             >
-              Investigate
+              {t("dashboard.alertModal.investigate")}
             </button>
           </div>
         </div>
@@ -200,6 +201,7 @@ function MetadataItem({ label, value, highlight }: { label: string; value: strin
 // DASHBOARD PAGE
 // ============================================
 export default function DashboardPage() {
+  const { t } = useI18n();
   const {
     alerts,
     selectedAlert,

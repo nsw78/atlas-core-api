@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
+import { useI18n } from "@/hooks/useI18n";
 import {
   scenarioTemplates,
   savedScenarios,
@@ -25,6 +26,7 @@ import {
 type WizardStep = "list" | "select_type" | "configure" | "running" | "results";
 
 export default function SimulationsPage() {
+  const { t } = useI18n();
   const [step, setStep] = useState<WizardStep>("list");
   const [selectedTemplate, setSelectedTemplate] = useState<ScenarioTemplate | null>(null);
   const [parameters, setParameters] = useState<Record<string, string | number>>({});
@@ -127,7 +129,7 @@ export default function SimulationsPage() {
   }, []);
 
   return (
-    <MainLayout title="Scenario Builder" subtitle="What-if analysis and impact modeling">
+    <MainLayout title={t("simulations.title")} subtitle={t("simulations.subtitle")}>
       <div className="space-y-6">
         {/* Step Indicator (when in wizard mode) */}
         {step !== "list" && (
@@ -139,7 +141,7 @@ export default function SimulationsPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Scenarios
+              Back to {t("simulations.scenarios")}
             </button>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
@@ -210,14 +212,14 @@ export default function SimulationsPage() {
                     {scenario.results ? (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <p className="text-xs text-gray-500">Impact</p>
+                          <p className="text-xs text-gray-500">{t("simulations.impact")}</p>
                           <p className={`text-lg font-bold ${
                             scenario.results.overallImpact >= 70 ? "text-red-400" :
                             scenario.results.overallImpact >= 40 ? "text-amber-400" : "text-emerald-400"
                           }`}>{scenario.results.overallImpact}/100</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Confidence</p>
+                          <p className="text-xs text-gray-500">{t("simulations.confidence")}</p>
                           <p className="text-lg font-bold text-blue-400">{scenario.results.confidence}%</p>
                         </div>
                       </div>
@@ -236,7 +238,7 @@ export default function SimulationsPage() {
         {/* STEP: Select Type */}
         {step === "select_type" && (
           <div>
-            <h2 className="text-lg font-semibold text-white mb-2">Choose Scenario Type</h2>
+            <h2 className="text-lg font-semibold text-white mb-2">{t("simulations.scenarios")}</h2>
             <p className="text-sm text-gray-400 mb-6">Select the type of scenario you want to simulate</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {scenarioTemplates.map((template) => (
@@ -284,7 +286,7 @@ export default function SimulationsPage() {
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-5">
               {/* Scenario Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Scenario Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t("simulations.scenarios")}</label>
                 <input
                   type="text"
                   value={scenarioName}
@@ -382,7 +384,7 @@ export default function SimulationsPage() {
                 className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <PlayIcon className="w-4 h-4" />
-                Run Simulation
+                {t("simulations.runSimulation")}
               </button>
             </div>
           </div>

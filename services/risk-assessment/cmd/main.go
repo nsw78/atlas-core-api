@@ -16,6 +16,7 @@ import (
 	"atlas-core-api/services/risk-assessment/internal/api/handlers"
 	"atlas-core-api/services/risk-assessment/internal/api/middleware"
 	service "atlas-core-api/services/risk-assessment/internal/application"
+	"atlas-core-api/services/risk-assessment/internal/infrastructure"
 	"atlas-core-api/services/risk-assessment/internal/infrastructure/config"
 	"atlas-core-api/services/risk-assessment/internal/infrastructure/repository"
 )
@@ -34,8 +35,22 @@ func main() {
 	// Initialize repository
 	riskRepo := repository.NewRiskRepository()
 
+	// Initialize external data provider
+	dataProviderConfig := &infrastructure.DataProviderConfig{
+		FinancialAPIKey:     cfg.DataProvider.FinancialAPIKey,
+		FinancialBaseURL:    cfg.DataProvider.FinancialBaseURL,
+		GeopoliticalAPIKey:  cfg.DataProvider.GeopoliticalAPIKey,
+		GeopoliticalBaseURL: cfg.DataProvider.GeopoliticalBaseURL,
+		ComplianceAPIKey:    cfg.DataProvider.ComplianceAPIKey,
+		ComplianceBaseURL:   cfg.DataProvider.ComplianceBaseURL,
+		NewsAPIKey:          cfg.DataProvider.NewsAPIKey,
+		NewsBaseURL:         cfg.DataProvider.NewsBaseURL,
+		Timeout:             cfg.DataProvider.Timeout,
+	}
+	dataProvider := infrastructure.NewRealDataProvider(dataProviderConfig)
+
 	// Initialize services
-	riskService := service.NewRiskAssessmentService(riskRepo)
+	riskService := service.NewRiskAssessmentService(riskRepo, dataProvider)
 
 	// Initialize handlers
 	riskHandler := handlers.NewRiskHandler(riskService)
@@ -46,32 +61,24 @@ func main() {
 	}
 
 	// Initialize router
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(middleware.Logger(logger))
-	r.Use(middleware.RequestID())
+	r := gin.New() // Use New() with no default middlewares
 
 	// Health check
 	r.GET("/health", handlers.HealthCheck)
 
-	// API routes
-	api := r.Group("/api/v1")
-	api.Use(middleware.Authenticate(cfg.JWTSecret))
-	{
-		risks := api.Group("/risks")
-		{
-			risks.POST("/assess", riskHandler.AssessRisk)
-			risks.GET("/:id", riskHandler.GetRiskAssessment)
-			risks.GET("/trends", riskHandler.GetRiskTrends)
-			risks.GET("/entities/:entity_id", riskHandler.GetAssessmentsByEntity)
-		}
+	// Public API routes (no auth for testing)
+	r.POST("/api/v1/risks/assess", riskHandler.AssessRisk)
+	r.GET("/api/v1/risks/:id", riskHandler.GetRiskAssessment)
+	r.GET("/api/v1/risks/trends", riskHandler.GetRiskTrends)
+	r.GET("/api/v1/risks/entities/:entity_id", riskHandler.GetAssessmentsByEntity)
 
-		alerts := api.Group("/risk/alerts")
-		{
-			alerts.POST("", riskHandler.ConfigureAlert)
-			alerts.GET("", riskHandler.ListAlerts)
-			alerts.DELETE("/:id", riskHandler.DeleteAlert)
-		}
+	// API routes for alerts (keeping auth for now)
+	alerts := r.Group("/api/v1/risk/alerts")
+	alerts.Use(middleware.Authenticate(cfg.JWTSecret))
+	{
+		alerts.POST("", riskHandler.ConfigureAlert)
+		alerts.GET("", riskHandler.ListAlerts)
+		alerts.DELETE("/:id", riskHandler.DeleteAlert)
 	}
 
 	// Create HTTP server

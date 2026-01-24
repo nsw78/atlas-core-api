@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
+import { useI18n } from "@/hooks/useI18n";
 
 // Types
 interface MapLayer {
@@ -72,6 +73,7 @@ const worldRegions = [
 ];
 
 export default function GeospatialPage() {
+  const { t } = useI18n();
   const [layers, setLayers] = useState<MapLayer[]>(initialLayers);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(assets[0] ?? null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>("as");
@@ -99,8 +101,8 @@ export default function GeospatialPage() {
 
   return (
     <MainLayout
-      title="Geospatial Intelligence"
-      subtitle="Global infrastructure monitoring and risk visualization"
+      title={t("geospatial.title")}
+      subtitle={t("geospatial.subtitle")}
     >
       <div className="space-y-4">
         {/* Top Controls Bar */}
@@ -111,25 +113,25 @@ export default function GeospatialPage() {
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search locations, assets..."
+                placeholder={t("geospatial.searchLocations")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
               />
             </div>
             <select className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="all">All Regions</option>
-              <option value="na">North America</option>
-              <option value="eu">Europe</option>
-              <option value="as">Asia Pacific</option>
-              <option value="me">Middle East</option>
+              <option value="all">{t("geospatial.allRegions")}</option>
+              <option value="na">{t("geospatial.northAmerica")}</option>
+              <option value="eu">{t("geospatial.europe")}</option>
+              <option value="as">{t("geospatial.asiaPacific")}</option>
+              <option value="me">{t("geospatial.middleEast")}</option>
             </select>
             <select className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="all">All Asset Types</option>
-              <option value="infrastructure">Infrastructure</option>
-              <option value="energy">Energy</option>
-              <option value="maritime">Maritime</option>
-              <option value="digital">Digital</option>
+              <option value="all">{t("geospatial.allAssetTypes")}</option>
+              <option value="infrastructure">{t("geospatial.infrastructure")}</option>
+              <option value="energy">{t("geospatial.energy")}</option>
+              <option value="maritime">{t("geospatial.maritime")}</option>
+              <option value="digital">{t("geospatial.digital")}</option>
             </select>
           </div>
 
@@ -154,15 +156,15 @@ export default function GeospatialPage() {
 
             <Button variant="secondary" size="sm" className="gap-2">
               <LayersIcon className="w-4 h-4" />
-              {activeLayersCount} Layers
+              {activeLayersCount} {t("geospatial.layers")}
             </Button>
             <Button variant="secondary" size="sm" className="gap-2">
               <DownloadIcon className="w-4 h-4" />
-              Export
+              {t("common.export")}
             </Button>
             <Button variant="primary" size="sm" className="gap-2">
               <PlusIcon className="w-4 h-4" />
-              Add Marker
+              {t("geospatial.addMarker")}
             </Button>
           </div>
         </div>
@@ -170,12 +172,12 @@ export default function GeospatialPage() {
         {/* KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {[
-            { label: "Monitored Assets", value: "8,247", change: "+124", positive: true },
-            { label: "Active Alerts", value: "47", change: "-8", positive: true },
-            { label: "Risk Zones", value: "156", change: "+3", positive: false },
-            { label: "Shipping Routes", value: "892", change: "0", positive: true },
-            { label: "Coverage", value: "94.2%", change: "+1.2%", positive: true },
-            { label: "Data Freshness", value: "< 5min", change: "", positive: true },
+            { label: t("geospatial.monitoredAssets"), value: "8,247", change: "+124", positive: true },
+            { label: t("geospatial.activeAlerts"), value: "47", change: "-8", positive: true },
+            { label: t("geospatial.riskZones"), value: "156", change: "+3", positive: false },
+            { label: t("geospatial.shippingRoutes"), value: "892", change: "0", positive: true },
+            { label: t("geospatial.coverage"), value: "94.2%", change: "+1.2%", positive: true },
+            { label: t("geospatial.dataFreshness"), value: "< 5min", change: "", positive: true },
           ].map((stat) => (
             <div key={stat.label} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
               <p className="text-xs text-gray-500">{stat.label}</p>
@@ -363,7 +365,7 @@ export default function GeospatialPage() {
             <Card>
               <CardContent className="py-3">
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-gray-500 w-20">Historical</span>
+                  <span className="text-xs text-gray-500 w-20">{t("geospatial.historical")}</span>
                   <div className="flex-1 relative">
                     <input
                       type="range"
@@ -382,7 +384,7 @@ export default function GeospatialPage() {
                   </div>
                   <Button variant="ghost" size="sm" className="gap-1">
                     <PlayIcon className="w-4 h-4" />
-                    Playback
+                    {t("geospatial.playback")}
                   </Button>
                 </div>
               </CardContent>
@@ -395,7 +397,7 @@ export default function GeospatialPage() {
             <Card>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Map Layers</CardTitle>
+                  <CardTitle className="text-sm">{t("geospatial.mapLayers")}</CardTitle>
                   <Badge variant="default">{activeLayersCount} active</Badge>
                 </div>
               </CardHeader>
@@ -437,7 +439,7 @@ export default function GeospatialPage() {
             <Card>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Live Alerts</CardTitle>
+                  <CardTitle className="text-sm">{t("geospatial.liveAlerts")}</CardTitle>
                   <span className="flex h-2 w-2 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -477,7 +479,7 @@ export default function GeospatialPage() {
             {selectedAsset && (
               <Card>
                 <CardHeader className="py-3">
-                  <CardTitle className="text-sm">Asset Details</CardTitle>
+                  <CardTitle className="text-sm">{t("geospatial.assetDetails")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
@@ -496,7 +498,7 @@ export default function GeospatialPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Risk Level</p>
+                      <p className="text-xs text-gray-500">{t("geospatial.riskLevel")}</p>
                       <Badge variant={
                         selectedAsset.riskLevel === "critical" ? "danger" :
                         selectedAsset.riskLevel === "high" ? "warning" :
@@ -506,28 +508,28 @@ export default function GeospatialPage() {
                       </Badge>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Status</p>
+                      <p className="text-xs text-gray-500">{t("common.status")}</p>
                       <Badge variant={selectedAsset.status === "operational" ? "success" : "warning"}>
                         {selectedAsset.status.charAt(0).toUpperCase() + selectedAsset.status.slice(1)}
                       </Badge>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Coordinates</p>
+                    <p className="text-xs text-gray-500">{t("geospatial.coordinates")}</p>
                     <p className="text-sm text-gray-400 font-mono">
                       {selectedAsset.coordinates[1].toFixed(4)}°N, {selectedAsset.coordinates[0].toFixed(4)}°E
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Last Updated</p>
+                    <p className="text-xs text-gray-500">{t("geospatial.lastUpdated")}</p>
                     <p className="text-sm text-gray-400">{selectedAsset.lastUpdated}</p>
                   </div>
                   <div className="flex gap-2 pt-2">
                     <Button variant="secondary" size="sm" className="flex-1">
-                      View History
+                      {t("geospatial.viewHistory")}
                     </Button>
                     <Button variant="primary" size="sm" className="flex-1">
-                      Full Report
+                      {t("geospatial.fullReport")}
                     </Button>
                   </div>
                 </CardContent>
@@ -537,7 +539,7 @@ export default function GeospatialPage() {
             {/* Quick Legend */}
             <Card>
               <CardHeader className="py-3">
-                <CardTitle className="text-sm">Risk Legend</CardTitle>
+                <CardTitle className="text-sm">{t("geospatial.riskLegend")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {[
