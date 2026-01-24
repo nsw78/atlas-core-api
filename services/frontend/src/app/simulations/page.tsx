@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
-import { useI18n } from "@/hooks/useI18n";
+import { useI18n } from "@/i18n";
 import {
   scenarioTemplates,
   savedScenarios,

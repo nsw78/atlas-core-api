@@ -41,6 +41,7 @@ function AlertModal({
   onInvestigate: (id: string) => void;
   onDismiss: (id: string) => void;
 }) {
+  const { t } = useI18n();
   if (!isOpen || !alert) return null;
 
   const sev = severityConfig[alert.severity];

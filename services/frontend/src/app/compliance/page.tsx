@@ -2,7 +2,7 @@
 
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
-import { useI18n } from "@/hooks/useI18n";
+import { useI18n } from "@/i18n";
 
 export default function CompliancePage() {
   const { t } = useI18n();

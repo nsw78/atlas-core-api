@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
-import { useI18n } from "@/contexts/I18nContext";
+import { useI18n } from "@/i18n";
 import {
   generateTimeSeries,
   analyticsKPIs,
