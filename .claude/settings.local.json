@@ -24,7 +24,9 @@
       "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build 2>&1 | Select-String -Pattern ''ERROR|Built|error'' | Select-Object -Last 40\")",
       "Bash(powershell.exe -Command \"Get-Content ''C:\\\\Users\\\\T0BFB~1.NWA\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-t-nwa-tfsports-Documents-Projetos-IA-atlas-core-api\\\\tasks\\\\b0220bc.output'' | Select-Object -Last 50\")",
       "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\t.nwa_tfsports\\\\Documents\\\\Projetos_IA\\\\atlas-core-api''; docker compose build 2>&1 | Out-String\")",
-      "Bash(powershell.exe -Command \"docker images --filter ''reference=atlas-core-api*'' --format ''{{.Repository}}:{{.Tag}} {{.Size}}'' 2>&1\")"
+      "Bash(powershell.exe -Command \"docker images --filter ''reference=atlas-core-api*'' --format ''{{.Repository}}:{{.Tag}} {{.Size}}'' 2>&1\")",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }

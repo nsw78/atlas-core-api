@@ -197,7 +197,7 @@ ON CONFLICT (name) DO NOTHING;
 -- Insert a default admin user (password: "admin")
 WITH admin_user AS (
     INSERT INTO users (username, email, password_hash, first_name, last_name, is_active, is_verified) VALUES
-        ('admin', 'admin@atlas.com', '$2a$12$7JgN5s9sJ.v4g.e8f.eE2u.m4o9Z.d.zY.gY4f.cR.jY3e.xZ8X.e', 'Admin', 'User', true, true)
+        ('admin', 'admin@atlas.com', '$2b$12$z9NCqGex0cxTwEcKFhlJx.gpAYa6Iy0sPEyZrmxB/Jc.AKCpXyPny', 'Admin', 'User', true, true)
     ON CONFLICT (username) DO NOTHING
     RETURNING id
 )

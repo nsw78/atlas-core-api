@@ -45,9 +45,7 @@ func (s *AuthService) Login(username, password string) (*models.User, string, st
 	s.logger.Info("User found", zap.String("username", username), zap.String("userID", user.ID))
 
 	// Verify password
-	if username == "admin" && password == "admin" {
-		s.logger.Info("Password verification bypassed for admin", zap.String("username", username))
-	} else if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		s.logger.Error("Password verification failed", zap.String("username", username), zap.Error(err))
 		return nil, "", "", errors.New("invalid credentials")
 	}
