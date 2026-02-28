@@ -28,7 +28,7 @@ export default function LoginPage() {
   const handleDemoLogin = async () => {
     setIsLoading(true);
     setError("");
-    const result = await login("admin", "admin");
+    const result = await login("admin", "Admin@2024");
     if (!result.success) {
       setError(result.error || t("auth.invalidCredentials"));
     }
@@ -117,7 +117,7 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 className="w-full"
               >
-                Demo Access (admin/admin)
+                Demo Access (admin/Admin@2024)
               </Button>
             </div>
 

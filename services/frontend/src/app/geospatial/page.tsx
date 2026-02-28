@@ -337,7 +337,7 @@ export default function GeospatialPage() {
                       </h4>
                       <div className="mt-2 space-y-1">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Risk Score:</span>
+                          <span className="text-gray-500">{t("geospatial.riskScore")}:</span>
                           <span className={`font-medium ${
                             (worldRegions.find(r => r.id === selectedRegion)?.risk ?? 0) >= 70 ? "text-red-400" :
                             (worldRegions.find(r => r.id === selectedRegion)?.risk ?? 0) >= 50 ? "text-amber-400" : "text-emerald-400"
@@ -346,7 +346,7 @@ export default function GeospatialPage() {
                           </span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Assets:</span>
+                          <span className="text-gray-500">{t("geospatial.assetsCount")}:</span>
                           <span className="text-white">{worldRegions.find(r => r.id === selectedRegion)?.assets.toLocaleString()}</span>
                         </div>
                       </div>
@@ -355,7 +355,7 @@ export default function GeospatialPage() {
 
                   {/* Coordinates Display */}
                   <div className="absolute bottom-4 right-4 bg-gray-900/90 px-3 py-1.5 rounded text-xs text-gray-400 font-mono">
-                    {selectedAsset ? `${selectedAsset.coordinates[1].toFixed(4)}°N, ${selectedAsset.coordinates[0].toFixed(4)}°E` : "Hover for coordinates"}
+                    {selectedAsset ? `${selectedAsset.coordinates[1].toFixed(4)}°N, ${selectedAsset.coordinates[0].toFixed(4)}°E` : t("geospatial.hoverForCoordinates")}
                   </div>
                 </div>
               </CardContent>
@@ -398,7 +398,7 @@ export default function GeospatialPage() {
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">{t("geospatial.mapLayers")}</CardTitle>
-                  <Badge variant="default">{activeLayersCount} active</Badge>
+                  <Badge variant="default">{activeLayersCount} {t("common.active")}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[220px] overflow-y-auto">
@@ -543,10 +543,10 @@ export default function GeospatialPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {[
-                  { color: "bg-emerald-500", label: "Low Risk", range: "0-25" },
-                  { color: "bg-amber-500", label: "Medium Risk", range: "26-50" },
-                  { color: "bg-orange-500", label: "High Risk", range: "51-75" },
-                  { color: "bg-red-500", label: "Critical Risk", range: "76-100" },
+                  { color: "bg-emerald-500", label: t("geospatial.lowRisk"), range: "0-25" },
+                  { color: "bg-amber-500", label: t("geospatial.mediumRisk"), range: "26-50" },
+                  { color: "bg-orange-500", label: t("geospatial.highRisk"), range: "51-75" },
+                  { color: "bg-red-500", label: t("geospatial.criticalRisk"), range: "76-100" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

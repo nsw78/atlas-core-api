@@ -7,29 +7,30 @@ import (
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
+	"go.uber.org/zap"
+
+	"atlas-core-api/services/api-gateway/internal/infrastructure/config"
 )
 
-// RateLimiter creates a rate limiter middleware
-// Default: 100 requests per minute per IP
-func RateLimiter() gin.HandlerFunc {
-	// Define rate limit (100 requests per minute)
+// RateLimiter creates a rate limiter middleware from config
+func RateLimiter(cfg *config.Config, logger *zap.Logger) gin.HandlerFunc {
 	rate := limiter.Rate{
-		Period: 1 * time.Minute,
-		Limit:  100,
+		Period: 1 * time.Second,
+		Limit:  int64(cfg.RateLimit.RequestsPerSecond),
 	}
 
-	// Create in-memory store with 1-hour cleanup
 	store := memory.NewStore()
-
-	// Create limiter instance
 	instance := limiter.New(store, rate)
 
-	// Return Gin middleware
+	logger.Info("Rate limiter configured",
+		zap.Int("rps", cfg.RateLimit.RequestsPerSecond),
+		zap.Int("burst", cfg.RateLimit.BurstSize),
+	)
+
 	return mgin.NewMiddleware(instance)
 }
 
 // StrictRateLimiter creates a stricter rate limiter for sensitive endpoints
-// 20 requests per minute per IP
 func StrictRateLimiter() gin.HandlerFunc {
 	rate := limiter.Rate{
 		Period: 1 * time.Minute,

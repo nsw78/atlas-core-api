@@ -94,7 +94,7 @@ function AlertModal({
             <MetadataItem label={t("dashboard.alertModal.region")} value={alert.region} />
             <MetadataItem label={t("dashboard.alertModal.country")} value={alert.country || "N/A"} />
             <MetadataItem label={t("dashboard.alertModal.impactScore")} value={`${alert.estimatedImpactScore}/100`} highlight />
-            <MetadataItem label={t("dashboard.alertModal.status")} value={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)} />
+            <MetadataItem label={t("dashboard.alertModal.status")} value={(alert.status?.charAt(0)?.toUpperCase() || "") + (alert.status?.slice(1) || "")} />
             <MetadataItem label={t("dashboard.alertModal.reported")} value={getTimeAgo(alert.timestamp)} />
             <MetadataItem label={t("dashboard.alertModal.lastUpdate")} value={getTimeAgo(alert.updatedAt)} />
             <MetadataItem label={t("dashboard.alertModal.entities")} value={`${alert.relatedEntities.length} ${t("dashboard.alertModal.linked")}`} />
@@ -102,7 +102,7 @@ function AlertModal({
 
           {/* Impact */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">Impact Assessment</h3>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.impactAssessment")}</h3>
             <p className="text-sm text-gray-400">{alert.impact}</p>
             <div className="mt-3 h-2 bg-gray-700 rounded-full overflow-hidden">
               <div
@@ -114,7 +114,7 @@ function AlertModal({
 
           {/* Related Entities */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">Related Entities</h3>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.relatedEntities")}</h3>
             <div className="flex flex-wrap gap-2">
               {alert.relatedEntities.map((entity) => (
                 <span key={entity} className="px-3 py-1 bg-gray-800 border border-gray-600 rounded-lg text-xs text-gray-300">
@@ -126,7 +126,7 @@ function AlertModal({
 
           {/* Recommendations */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">Recommendations</h3>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.recommendations")}</h3>
             <ul className="space-y-2">
               {alert.recommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
@@ -140,7 +140,7 @@ function AlertModal({
           {/* External Links */}
           {alert.externalLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">External References</h3>
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.externalReferences")}</h3>
               <div className="flex flex-wrap gap-3">
                 {alert.externalLinks.map((link) => (
                   <a
@@ -232,16 +232,16 @@ export default function DashboardPage() {
 
   // KPI data for the top strip
   const kpis = [
-    { label: "Risk Index", value: "67", trend: "+5.2%", color: "text-red-400", icon: ShieldIcon },
-    { label: "Active Threats", value: "23", trend: "+12%", color: "text-amber-400", icon: AlertTriangleIcon },
-    { label: "Unread Alerts", value: String(unreadCount), trend: "", color: "text-blue-400", icon: InboxIcon },
-    { label: "Critical", value: String(criticalCount), trend: "", color: "text-red-500", icon: FireIcon },
-    { label: "Data Sources", value: "847", trend: "+1.8%", color: "text-emerald-400", icon: DatabaseIcon },
-    { label: "Model Accuracy", value: "94.2%", trend: "+1.2%", color: "text-cyan-400", icon: CpuIcon },
+    { label: t("dashboard.riskIndex"), value: "67", trend: "+5.2%", color: "text-red-400", icon: ShieldIcon },
+    { label: t("dashboard.activeThreats"), value: "23", trend: "+12%", color: "text-amber-400", icon: AlertTriangleIcon },
+    { label: t("dashboard.unreadAlerts"), value: String(unreadCount), trend: "", color: "text-blue-400", icon: InboxIcon },
+    { label: t("risk.critical"), value: String(criticalCount), trend: "", color: "text-red-500", icon: FireIcon },
+    { label: t("dashboard.dataSources"), value: "847", trend: "+1.8%", color: "text-emerald-400", icon: DatabaseIcon },
+    { label: t("dashboard.modelAccuracyLabel"), value: "94.2%", trend: "+1.2%", color: "text-cyan-400", icon: CpuIcon },
   ];
 
   return (
-    <MainLayout title="Command Center" subtitle="Real-time threat monitoring and alert management">
+    <MainLayout title={t("dashboard.title")} subtitle={t("dashboard.subtitle")}>
       {/* Alert Modal */}
       <AlertModal
         alert={selectedAlert}
@@ -264,7 +264,7 @@ export default function DashboardPage() {
               <p className="text-xl font-bold text-white">{kpi.value}</p>
               {kpi.trend && (
                 <span className={`text-xs ${kpi.trend.startsWith("+") ? "text-red-400" : "text-emerald-400"}`}>
-                  {kpi.trend} vs last period
+                  {kpi.trend} {t("dashboard.vsLastPeriod")}
                 </span>
               )}
             </div>
@@ -277,8 +277,8 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 bg-gray-900/50 border border-gray-800 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Incident Trend (30 days)</h2>
-                <p className="text-xs text-gray-400">Across all threat categories</p>
+                <h2 className="text-lg font-semibold text-white">{t("dashboard.incidentTrend")} (30 {t("analytics.days")})</h2>
+                <p className="text-xs text-gray-400">{t("dashboard.acrossAllCategories")}</p>
               </div>
               <div className="flex items-center gap-3">
                 {/* Auto-refresh controls */}
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                   }`}
                 >
                   <div className={`w-1.5 h-1.5 rounded-full ${autoRefresh.isActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
-                  {autoRefresh.isActive ? `${autoRefresh.countdown}s` : "Paused"}
+                  {autoRefresh.isActive ? `${autoRefresh.countdown}s` : t("dashboard.paused")}
                 </button>
                 <button
                   onClick={autoRefresh.manualRefresh}
@@ -335,14 +335,14 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded" /> Total Incidents</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-purple-500 rounded" /> Cyber Threats</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded" /> {t("dashboard.totalIncidents")}</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-purple-500 rounded" /> {t("dashboard.cyberThreats")}</span>
             </div>
           </div>
 
           {/* System Status */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">System Status</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">{t("dashboard.systemStatus")}</h2>
             <div className="space-y-4">
               {analyticsKPIs.slice(0, 6).map((kpi) => (
                 <div key={kpi.id} className="flex items-center justify-between">
@@ -360,12 +360,12 @@ export default function DashboardPage() {
             </div>
             <div className="mt-6 pt-4 border-t border-gray-700">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Last refresh</span>
+                <span className="text-gray-400">{t("dashboard.lastRefresh")}</span>
                 <span className="text-emerald-400">{autoRefresh.lastRefresh.toLocaleTimeString()}</span>
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs text-emerald-400">All systems operational</span>
+                <span className="text-xs text-emerald-400">{t("dashboard.allSystemsOperational")}</span>
               </div>
             </div>
           </div>
@@ -375,15 +375,15 @@ export default function DashboardPage() {
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-white">Active Alerts</h2>
+              <h2 className="text-lg font-semibold text-white">{t("dashboard.activeAlerts")}</h2>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs font-semibold rounded-full">
-                  {unreadCount} unread
+                  {unreadCount} {t("common.unread")}
                 </span>
               )}
               {criticalCount > 0 && (
                 <span className="px-2 py-0.5 bg-red-600/30 text-red-300 text-xs font-semibold rounded-full animate-pulse">
-                  {criticalCount} critical
+                  {criticalCount} {t("risk.critical")}
                 </span>
               )}
             </div>
@@ -395,18 +395,18 @@ export default function DashboardPage() {
                 onChange={(e) => setFilterSeverity(e.target.value as AlertSeverity | "all")}
                 className="bg-gray-800 border border-gray-600 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
               >
-                <option value="all">All Severity</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="all">{t("dashboard.allSeverity")}</option>
+                <option value="critical">{t("risk.critical")}</option>
+                <option value="high">{t("risk.high")}</option>
+                <option value="medium">{t("risk.medium")}</option>
+                <option value="low">{t("risk.low")}</option>
               </select>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value as AlertCategory | "all")}
                 className="bg-gray-800 border border-gray-600 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
               >
-                <option value="all">All Categories</option>
+                <option value="all">{t("dashboard.allCategories")}</option>
                 {alertCategories.map((cat) => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
@@ -421,7 +421,7 @@ export default function DashboardPage() {
                 <svg className="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-gray-400 text-sm">No alerts matching current filters</p>
+                <p className="text-gray-400 text-sm">{t("dashboard.noAlertsMatch")}</p>
               </div>
             ) : (
               alerts.map((alert) => {
@@ -475,7 +475,7 @@ export default function DashboardPage() {
                         }`}>
                           {alert.estimatedImpactScore}
                         </div>
-                        <span className="text-[10px] text-gray-500">impact</span>
+                        <span className="text-[10px] text-gray-500">{t("simulations.impact")}</span>
                       </div>
                     </div>
                   </button>
@@ -495,12 +495,12 @@ export default function DashboardPage() {
 function getTimeAgo(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return "< 1m";
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${days}d`;
 }
 
 // ============================================

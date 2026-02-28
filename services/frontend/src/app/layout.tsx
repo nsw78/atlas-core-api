@@ -20,6 +20,12 @@ export const metadata: Metadata = {
     "OSINT",
     "decision support",
   ],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

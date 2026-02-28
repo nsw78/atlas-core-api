@@ -157,44 +157,44 @@ export default function AnalyticsPage() {
               onChange={(e) => setTimeRange(e.target.value as TimeRange)}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
+              <option value="7d">{t("time.last7Days")}</option>
+              <option value="30d">{t("time.last30Days")}</option>
+              <option value="90d">{t("time.last90Days")}</option>
+              <option value="1y">{t("time.lastYear")}</option>
             </select>
             <select
               value={threatType}
               onChange={(e) => setThreatType(e.target.value as ThreatType)}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="all">{t("common.all")} Threats</option>
-              <option value="cyber">Cyber</option>
-              <option value="infrastructure">Infrastructure</option>
-              <option value="energy">Energy</option>
-              <option value="geopolitical">Geopolitical</option>
-              <option value="climate">Climate</option>
-              <option value="supply_chain">Supply Chain</option>
+              <option value="all">{t("common.all")} {t("analytics.threats")}</option>
+              <option value="cyber">{t("analytics.cyber")}</option>
+              <option value="infrastructure">{t("analytics.infrastructure")}</option>
+              <option value="energy">{t("analytics.energy")}</option>
+              <option value="geopolitical">{t("analytics.geopolitical")}</option>
+              <option value="climate">{t("analytics.climate")}</option>
+              <option value="supply_chain">{t("analytics.supplyChain")}</option>
             </select>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value as RegionFilter)}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="all">{t("common.all")} Regions</option>
-              <option value="NA">North America</option>
-              <option value="EU">Europe</option>
-              <option value="APAC">Asia Pacific</option>
-              <option value="ME">Middle East</option>
-              <option value="SA">South America</option>
-              <option value="AF">Africa</option>
-              <option value="OC">Oceania</option>
+              <option value="all">{t("common.all")} {t("analytics.region")}</option>
+              <option value="NA">{t("regions.northAmerica")}</option>
+              <option value="EU">{t("regions.europe")}</option>
+              <option value="APAC">{t("regions.asia")}</option>
+              <option value="ME">{t("regions.middleEast")}</option>
+              <option value="SA">{t("regions.southAmerica")}</option>
+              <option value="AF">{t("regions.africa")}</option>
+              <option value="OC">{t("regions.oceania")}</option>
             </select>
 
             {/* Export dropdown */}
             <div className="relative group">
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 hover:text-white hover:border-gray-600 transition-colors">
                 <DownloadIcon className="w-4 h-4" />
-                Export
+                {t("common.export")}
               </button>
               <div className="absolute right-0 top-full mt-1 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                 <button
@@ -222,7 +222,7 @@ export default function AnalyticsPage() {
               }`}
             >
               <div className={`w-1.5 h-1.5 rounded-full ${autoRefresh.isActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
-              {autoRefresh.isActive ? `Auto ${autoRefresh.countdown}s` : "Auto-refresh"}
+              {autoRefresh.isActive ? `Auto ${autoRefresh.countdown}s` : t("analytics.autoRefresh")}
             </button>
 
             <button
@@ -270,8 +270,8 @@ export default function AnalyticsPage() {
               <div className="lg:col-span-2 bg-gray-900/50 border border-gray-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Incident Trend</h2>
-                    <p className="text-xs text-gray-400">{days}-day view across categories</p>
+                    <h2 className="text-lg font-semibold text-white">{t("analytics.incidentTrend")}</h2>
+                    <p className="text-xs text-gray-400">{days}{t("analytics.dayViewAcross")}</p>
                   </div>
                 </div>
                 <div className="h-72">
@@ -309,9 +309,9 @@ export default function AnalyticsPage() {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded" /> Total</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-purple-500 rounded" /> Cyber</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-red-500 rounded" /> Geopolitical</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded" /> {t("analytics.total")}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-purple-500 rounded" /> {t("analytics.cyber")}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-red-500 rounded" /> {t("analytics.geopolitical")}</span>
                 </div>
               </div>
 
@@ -386,8 +386,8 @@ export default function AnalyticsPage() {
 
               {/* Radar Chart */}
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-                <h2 className="text-lg font-semibold text-white mb-1">Threat Profile</h2>
-                <p className="text-xs text-gray-400 mb-4">Multi-dimensional threat analysis</p>
+                <h2 className="text-lg font-semibold text-white mb-1">{t("analytics.threatProfile")}</h2>
+                <p className="text-xs text-gray-400 mb-4">{t("analytics.multiDimensional")}</p>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarData}>
@@ -412,8 +412,8 @@ export default function AnalyticsPage() {
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Detailed Trend Analysis</h2>
-                <p className="text-xs text-gray-400">All threat categories over {days} days</p>
+                <h2 className="text-lg font-semibold text-white">{t("analytics.detailedTrend")}</h2>
+                <p className="text-xs text-gray-400">{t("analytics.allCategoriesOverDays")} {days} {t("analytics.days")}</p>
               </div>
             </div>
             <div className="h-96">
@@ -441,17 +441,17 @@ export default function AnalyticsPage() {
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-lg font-semibold text-white">{t("analytics.riskByRegion")}</h2>
-              <p className="text-xs text-gray-400">Comprehensive analysis by region</p>
+              <p className="text-xs text-gray-400">{t("analytics.comprehensiveByRegion")}</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800 bg-gray-800/30">
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Region</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Incidents</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Severity</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Trend</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">{t("analytics.region")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">{t("analytics.incidents")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">{t("analytics.severity")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">{t("analytics.trend")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">{t("analytics.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -494,7 +494,7 @@ export default function AnalyticsPage() {
                           region.severity >= 50 ? "bg-amber-500/20 text-amber-400" :
                           "bg-emerald-500/20 text-emerald-400"
                         }`}>
-                          {region.severity >= 70 ? "High Alert" : region.severity >= 50 ? "Monitoring" : "Stable"}
+                          {region.severity >= 70 ? t("analytics.highAlert") : region.severity >= 50 ? t("analytics.monitoring") : t("analytics.stable")}
                         </span>
                       </td>
                     </tr>

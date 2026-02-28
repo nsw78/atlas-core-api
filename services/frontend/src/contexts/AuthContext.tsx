@@ -35,7 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.user && parsed.expiresAt > Date.now()) {
+          // Validate stored user has expected shape (username, id)
+          if (parsed.user && parsed.user.username && parsed.user.id && parsed.expiresAt > Date.now()) {
             setUser(parsed.user);
           } else {
             localStorage.removeItem(STORAGE_KEY);
@@ -77,10 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (response.ok) {
           const body = await response.json();
-          const userData: User = body.data;
+          // Gateway wraps response in { code, message, data: { access_token, user: {...} } }
+          // IAM returns { data: {...}, access_token, ... }
+          const payload = body.data || body;
+          const userData: User = payload.user || payload.data || payload;
 
           const session = {
             user: userData,
+            accessToken: payload.access_token || body.access_token,
             expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
@@ -88,8 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
           return { success: true };
         } else {
-          const errorBody = await response.json();
-          return { success: false, error: errorBody.error || "Login failed" };
+          const errorBody = await response.json().catch(() => ({}));
+          return { success: false, error: errorBody.message || errorBody.error || "Login failed" };
         }
       } catch (error) {
         return { success: false, error: "Network error or server is down" };

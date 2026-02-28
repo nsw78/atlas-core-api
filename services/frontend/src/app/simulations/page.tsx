@@ -141,7 +141,7 @@ export default function SimulationsPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to {t("simulations.scenarios")}
+              {t("simulations.backToScenarios")} {t("simulations.scenarios")}
             </button>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
@@ -170,8 +170,8 @@ export default function SimulationsPage() {
             {/* Create New Button */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-white">Saved Scenarios</h2>
-                <p className="text-xs text-gray-400">{scenarios.length} scenarios created</p>
+                <h2 className="text-lg font-semibold text-white">{t("simulations.savedScenarios")}</h2>
+                <p className="text-xs text-gray-400">{scenarios.length} {t("simulations.scenariosCreated")}</p>
               </div>
               <button
                 onClick={() => setStep("select_type")}
@@ -180,7 +180,7 @@ export default function SimulationsPage() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                New Scenario
+                {t("simulations.newScenario")}
               </button>
             </div>
 
@@ -225,7 +225,7 @@ export default function SimulationsPage() {
                       </div>
                     ) : (
                       <p className="text-xs text-gray-500 italic">
-                        {scenario.status === "running" ? "Simulation in progress..." : "No results yet"}
+                        {scenario.status === "running" ? t("simulations.simulationInProgress") : t("simulations.noResultsYet")}
                       </p>
                     )}
                   </button>
@@ -239,7 +239,7 @@ export default function SimulationsPage() {
         {step === "select_type" && (
           <div>
             <h2 className="text-lg font-semibold text-white mb-2">{t("simulations.scenarios")}</h2>
-            <p className="text-sm text-gray-400 mb-6">Select the type of scenario you want to simulate</p>
+            <p className="text-sm text-gray-400 mb-6">{t("simulations.selectScenarioType")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {scenarioTemplates.map((template) => (
                 <button
@@ -279,7 +279,7 @@ export default function SimulationsPage() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">{selectedTemplate.label}</h2>
-                <p className="text-xs text-gray-400">Configure simulation parameters</p>
+                <p className="text-xs text-gray-400">{t("simulations.configureParameters")}</p>
               </div>
             </div>
 
@@ -349,13 +349,13 @@ export default function SimulationsPage() {
                       onChange={(e) => setParameters((p) => ({ ...p, [param.key]: e.target.value }))}
                       className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
                     >
-                      <option value="NA">North America</option>
-                      <option value="EU">Europe</option>
-                      <option value="APAC">Asia Pacific</option>
-                      <option value="ME">Middle East</option>
-                      <option value="SA">South America</option>
-                      <option value="AF">Africa</option>
-                      <option value="GLOBAL">Global</option>
+                      <option value="NA">{t("regions.northAmerica")}</option>
+                      <option value="EU">{t("regions.europe")}</option>
+                      <option value="APAC">{t("regions.asia")}</option>
+                      <option value="ME">{t("regions.middleEast")}</option>
+                      <option value="SA">{t("regions.southAmerica")}</option>
+                      <option value="AF">{t("regions.africa")}</option>
+                      <option value="GLOBAL">{t("regions.global")}</option>
                     </select>
                   )}
 
@@ -377,7 +377,7 @@ export default function SimulationsPage() {
                 onClick={() => setStep("select_type")}
                 className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
               >
-                Back
+                {t("common.back")}
               </button>
               <button
                 onClick={runSimulation}
@@ -394,7 +394,7 @@ export default function SimulationsPage() {
         {step === "running" && (
           <div className="max-w-lg mx-auto text-center py-12">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full border-4 border-gray-700 border-t-blue-500 animate-spin" />
-            <h2 className="text-xl font-semibold text-white mb-2">Running Simulation</h2>
+            <h2 className="text-xl font-semibold text-white mb-2">{t("simulations.runningSimulation")}</h2>
             <p className="text-sm text-gray-400 mb-6">{scenarioName}</p>
 
             {/* Progress Bar */}
@@ -404,17 +404,17 @@ export default function SimulationsPage() {
                 style={{ width: `${runProgress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500">{runProgress}% complete</p>
+            <p className="text-xs text-gray-500">{runProgress}% {t("simulations.percentComplete")}</p>
 
             {/* Progress Steps */}
             <div className="mt-8 space-y-3 text-left max-w-sm mx-auto">
               {[
-                { threshold: 0, label: "Initializing simulation engine" },
-                { threshold: 20, label: "Loading scenario parameters" },
-                { threshold: 40, label: "Running Monte Carlo simulations" },
-                { threshold: 60, label: "Analyzing cascading effects" },
-                { threshold: 80, label: "Generating impact assessment" },
-                { threshold: 95, label: "Compiling recommendations" },
+                { threshold: 0, label: t("simulations.initializingEngine") },
+                { threshold: 20, label: t("simulations.loadingParameters") },
+                { threshold: 40, label: t("simulations.runningMonteCarlo") },
+                { threshold: 60, label: t("simulations.analyzingEffects") },
+                { threshold: 80, label: t("simulations.generatingAssessment") },
+                { threshold: 95, label: t("simulations.compilingRecommendations") },
               ].map((s) => (
                 <div key={s.threshold} className="flex items-center gap-3">
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -439,26 +439,26 @@ export default function SimulationsPage() {
                 <h2 className="text-lg font-semibold text-white">
                   {viewingScenario ? viewingScenario.name : scenarioName}
                 </h2>
-                <p className="text-xs text-gray-400">Simulation completed</p>
+                <p className="text-xs text-gray-400">{t("simulations.simulationCompleted")}</p>
               </div>
               <button
                 onClick={resetWizard}
                 className="px-4 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:text-white hover:border-gray-600 transition-colors"
               >
-                New Scenario
+                {t("simulations.newScenario")}
               </button>
             </div>
 
             {/* Impact Scores */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               {[
-                { label: "Overall", value: results.overallImpact, color: results.overallImpact >= 70 ? "text-red-400" : "text-amber-400" },
-                { label: "Economic", value: results.economicImpact, color: results.economicImpact >= 70 ? "text-red-400" : "text-amber-400" },
-                { label: "Social", value: results.socialImpact, color: results.socialImpact >= 70 ? "text-red-400" : "text-amber-400" },
-                { label: "Infrastructure", value: results.infrastructureImpact, color: results.infrastructureImpact >= 70 ? "text-red-400" : "text-amber-400" },
-                { label: "Environmental", value: results.environmentalImpact, color: results.environmentalImpact >= 40 ? "text-amber-400" : "text-emerald-400" },
-                { label: "Probability", value: results.probability, color: "text-blue-400" },
-                { label: "Confidence", value: results.confidence, color: "text-cyan-400" },
+                { label: t("simulations.overall"), value: results.overallImpact, color: results.overallImpact >= 70 ? "text-red-400" : "text-amber-400" },
+                { label: t("simulations.economic"), value: results.economicImpact, color: results.economicImpact >= 70 ? "text-red-400" : "text-amber-400" },
+                { label: t("simulations.social"), value: results.socialImpact, color: results.socialImpact >= 70 ? "text-red-400" : "text-amber-400" },
+                { label: t("risk.infrastructure"), value: results.infrastructureImpact, color: results.infrastructureImpact >= 70 ? "text-red-400" : "text-amber-400" },
+                { label: t("simulations.environmental"), value: results.environmentalImpact, color: results.environmentalImpact >= 40 ? "text-amber-400" : "text-emerald-400" },
+                { label: t("simulations.probability"), value: results.probability, color: "text-blue-400" },
+                { label: t("simulations.confidence"), value: results.confidence, color: "text-cyan-400" },
               ].map((item) => (
                 <div key={item.label} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 text-center">
                   <p className="text-xs text-gray-400 mb-1">{item.label}</p>
@@ -470,7 +470,7 @@ export default function SimulationsPage() {
 
             {/* Timeline Chart */}
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <h3 className="text-base font-semibold text-white mb-4">Impact Timeline</h3>
+              <h3 className="text-base font-semibold text-white mb-4">{t("simulations.impactTimeline")}</h3>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={results.timeline} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -511,7 +511,7 @@ export default function SimulationsPage() {
             {/* Recommendations & Regions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-                <h3 className="text-base font-semibold text-white mb-4">Recommendations</h3>
+                <h3 className="text-base font-semibold text-white mb-4">{t("simulations.recommendations")}</h3>
                 <ul className="space-y-3">
                   {results.recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
@@ -523,12 +523,12 @@ export default function SimulationsPage() {
               </div>
 
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-                <h3 className="text-base font-semibold text-white mb-4">Affected Regions</h3>
+                <h3 className="text-base font-semibold text-white mb-4">{t("simulations.affectedRegions")}</h3>
                 <div className="space-y-3">
                   {results.affectedRegions.map((region) => (
                     <div key={region} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                       <span className="text-sm text-gray-300">{region}</span>
-                      <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">Affected</span>
+                      <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">{t("simulations.affected")}</span>
                     </div>
                   ))}
                 </div>

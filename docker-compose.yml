@@ -10,9 +10,10 @@ services:
       POSTGRES_USER: atlas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_dev}
     ports:
-      - "5435:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
       - ./backups:/backups
     networks:
       - atlas-network
@@ -22,6 +23,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
     command: >
       postgres
       -c shared_buffers=512MB
@@ -33,6 +40,10 @@ services:
       -c default_statistics_target=100
       -c random_page_cost=1.1
       -c effective_io_concurrency=200
+      -c log_min_duration_statement=1000
+      -c log_checkpoints=on
+      -c log_connections=on
+      -c log_disconnections=on
 
   postgis:
     image: postgis/postgis:15-3.3-alpine
@@ -42,7 +53,7 @@ services:
       POSTGRES_USER: atlas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_dev}
     ports:
-      - "5436:5432"
+      - "5438:5432"
     volumes:
       - postgis_data:/var/lib/postgresql/data
       - ./backups:/backups
@@ -54,6 +65,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
     command: >
       postgres
       -c shared_buffers=512MB
@@ -64,9 +81,17 @@ services:
   redis:
     image: redis:7-alpine
     container_name: atlas-redis
-    command: redis-server --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --hz 10
     ports:
-      - "6379:6379"
+      - "6392:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -76,6 +101,10 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ===========================================
   # INFRASTRUCTURE - Message Queue
@@ -103,7 +132,7 @@ services:
       zookeeper:
         condition: service_healthy
     ports:
-      - "9093:9092"
+      - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -111,16 +140,20 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_NUM_PARTITIONS: 3
     networks:
       - atlas-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9093"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   # ===========================================
-  # CORE SERVICES - Go
+  # CORE SERVICES - Go (Enterprise Config)
   # ===========================================
   api-gateway:
     build:
@@ -129,11 +162,40 @@ services:
     container_name: atlas-api-gateway
     ports:
       - "8080:8080"
+      - "9090:9090"
     environment:
-      PORT: 8080
+      # Server
+      SERVER_PORT: 8080
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SERVER_READ_TIMEOUT: 30s
+      SERVER_WRITE_TIMEOUT: 30s
+      SERVER_IDLE_TIMEOUT: 120s
+      SERVER_SHUTDOWN_TIMEOUT: 30s
+      SERVER_GRACEFUL_SHUTDOWN: "true"
+      # Auth
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      JWT_EXPIRATION: 15m
+      REFRESH_TOKEN_EXPIRATION: 168h
+      MAX_LOGIN_ATTEMPTS: 5
+      LOCKOUT_DURATION: 15m
+      # Cache
+      CACHE_TYPE: redis
       REDIS_URL: redis://redis:6379/0
+      CACHE_TTL: 1h
+      # Database
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas_dev}@postgres:5432/atlas?sslmode=disable
-      ALLOWED_ORIGINS: http://localhost:3004,https://localhost:3004
+      # CORS
+      CORS_ENABLED: "true"
+      CORS_ALLOWED_ORIGINS: http://localhost:3004,https://localhost:3004
+      # Rate Limiting
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_RPS: 100
+      RATE_LIMIT_BURST: 50
+      # Observability
+      METRICS_ENABLED: "true"
+      METRICS_PORT: 9090
+      TRACING_ENABLED: "false"
+      LOG_LEVEL: info
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -144,6 +206,16 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    restart: unless-stopped
 
   iam-service:
     build:
@@ -153,12 +225,28 @@ services:
     ports:
       - "8084:8081"
     environment:
+      PORT: 8081
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas_dev}@postgres:5432/atlas?sslmode=disable
-      JWT_SECRET: dev-secret-change-in-production
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 10
     depends_on:
       postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    restart: unless-stopped
 
   risk-assessment:
     build:
@@ -166,11 +254,21 @@ services:
       dockerfile: Dockerfile
     container_name: atlas-risk-assessment
     ports:
-      - "8083:8082"
+      - "8086:8082"
+    environment:
+      PORT: 8082
+      REDIS_URL: redis://redis:6379/1
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas_dev}@postgres:5432/atlas?sslmode=disable
     depends_on:
       redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: unless-stopped
 
   ingestion-service:
     build:
@@ -179,10 +277,17 @@ services:
     container_name: atlas-ingestion
     environment:
       KAFKA_BROKERS: kafka:29092
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas_dev}@postgres:5432/atlas?sslmode=disable
     depends_on:
       kafka: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: unless-stopped
 
   normalization-service:
     build:
@@ -197,6 +302,11 @@ services:
       postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: unless-stopped
 
   audit-logging:
     build:
@@ -211,6 +321,11 @@ services:
       postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: unless-stopped
 
   graph-intelligence:
     build:
@@ -225,6 +340,11 @@ services:
       postgres: { condition: service_healthy }
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
 
   # ===========================================
   # FRONTEND
@@ -243,6 +363,11 @@ services:
         condition: service_healthy
     networks:
       - atlas-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
 
 # ===========================================
 # GLOBAL DEFINITIONS
@@ -250,6 +375,9 @@ services:
 networks:
   atlas-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
 
 volumes:
   postgres_data:

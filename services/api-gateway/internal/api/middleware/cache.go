@@ -12,7 +12,7 @@ import (
 )
 
 // CacheMiddleware creates a caching middleware using Redis
-func CacheMiddleware(redisCache *cache.RedisCache, ttl time.Duration) gin.HandlerFunc {
+func CacheMiddleware(cacheStore cache.Cache, ttl time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Only cache GET requests
 		if c.Request.Method != http.MethodGet {
@@ -25,9 +25,8 @@ func CacheMiddleware(redisCache *cache.RedisCache, ttl time.Duration) gin.Handle
 
 		// Try to get from cache
 		var cachedResponse CachedResponse
-		err := redisCache.Get(cacheKey, &cachedResponse)
+		err := cacheStore.Get(c.Request.Context(), cacheKey, &cachedResponse)
 		if err == nil && cachedResponse.Body != nil {
-			// Cache hit - return cached response
 			c.Header("X-Cache", "HIT")
 			for key, value := range cachedResponse.Headers {
 				c.Header(key, value)
@@ -37,11 +36,10 @@ func CacheMiddleware(redisCache *cache.RedisCache, ttl time.Duration) gin.Handle
 			return
 		}
 
-		// Cache miss - continue with request
 		c.Header("X-Cache", "MISS")
 
 		// Capture response
-		writer := &responseWriter{
+		writer := &cacheResponseWriter{
 			ResponseWriter: c.Writer,
 			body:           &bytes.Buffer{},
 		}
@@ -58,14 +56,13 @@ func CacheMiddleware(redisCache *cache.RedisCache, ttl time.Duration) gin.Handle
 				Body:        writer.body.Bytes(),
 			}
 
-			// Copy important headers
 			for _, header := range []string{"Content-Type", "Content-Encoding"} {
 				if val := writer.Header().Get(header); val != "" {
 					response.Headers[header] = val
 				}
 			}
 
-			redisCache.Set(cacheKey, response, ttl)
+			cacheStore.Set(c.Request.Context(), cacheKey, response, ttl)
 		}
 	}
 }
@@ -77,17 +74,17 @@ type CachedResponse struct {
 	Body        []byte            `json:"body"`
 }
 
-type responseWriter struct {
+type cacheResponseWriter struct {
 	gin.ResponseWriter
 	body *bytes.Buffer
 }
 
-func (w *responseWriter) Write(b []byte) (int, error) {
+func (w *cacheResponseWriter) Write(b []byte) (int, error) {
 	w.body.Write(b)
 	return w.ResponseWriter.Write(b)
 }
 
-func (w *responseWriter) WriteString(s string) (int, error) {
+func (w *cacheResponseWriter) WriteString(s string) (int, error) {
 	w.body.WriteString(s)
 	return w.ResponseWriter.WriteString(s)
 }

@@ -35,16 +35,16 @@ export default function CompliancePage() {
                           : "danger"
                     }
                   >
-                    {item.status === "compliant" ? "Compliant" : "Review"}
+                    {item.status === "compliant" ? t("compliance.compliant") : t("compliance.review")}
                   </Badge>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Last Audit</span>
+                    <span className="text-gray-400">{t("compliance.lastAudit")}</span>
                     <span className="text-gray-300">{item.lastAudit}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Open Findings</span>
+                    <span className="text-gray-400">{t("compliance.openFindingsLabel")}</span>
                     <span
                       className={
                         item.findings > 0 ? "text-amber-400" : "text-emerald-400"
@@ -63,7 +63,7 @@ export default function CompliancePage() {
           {/* Audit Log */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Audit Log</CardTitle>
+              <CardTitle>{t("compliance.auditLog")}</CardTitle>
               <Button variant="secondary" size="sm">
                 Export
               </Button>
