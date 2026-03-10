@@ -355,7 +355,7 @@ services:
       dockerfile: Dockerfile
     container_name: atlas-sanctions-screening
     ports:
-      - "8091:8000"
+      - "8092:8000"
     environment:
       - REDIS_URL=redis://redis:6379/3
       - SYNC_INTERVAL_HOURS=6
