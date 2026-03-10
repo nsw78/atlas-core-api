@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, CardContent } from "@/components/atoms";
+import { Button } from "@/components/atoms";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 
@@ -36,39 +36,49 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 bg-mesh-gradient" />
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
+      <div className="absolute inset-0 dot-pattern opacity-30" />
+
+      <div className="relative w-full max-w-md animate-fade-in">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-2xl">A</span>
+        <div className="text-center mb-10">
+          <div className="relative w-20 h-20 mx-auto mb-5">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 blur-xl opacity-40 animate-pulse" />
+            <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-2xl shadow-blue-500/25">
+              <span className="text-white font-bold text-3xl tracking-tight">A</span>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white">ATLAS</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold text-white tracking-tight">ATLAS</h1>
+          <p className="text-sm text-gray-500 mt-1.5 font-medium tracking-wide">
             {t("auth.loginSubtitle")}
           </p>
         </div>
 
-        <Card>
-          <CardContent className="p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-lg font-semibold text-white">
+        {/* Login Card */}
+        <div className="glass-elevated rounded-3xl overflow-hidden">
+          <div className="p-8">
+            <div className="text-center mb-7">
+              <h2 className="text-xl font-semibold text-white tracking-tight">
                 {t("auth.welcomeBack")}
               </h2>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 {t("auth.secureAccess")}
               </p>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <p className="text-sm text-red-400">{error}</p>
+              <div className="mb-5 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl animate-slide-up">
+                <p className="text-sm text-red-400 font-medium">{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   {t("auth.username")}
                 </label>
                 <input
@@ -76,38 +86,39 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   {t("auth.password")}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="admin"
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Admin@2024"
+                  className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all"
                 />
               </div>
 
               <Button
                 type="submit"
+                variant="gradient"
                 isLoading={isLoading}
-                className="w-full"
+                className="w-full py-3 text-base font-semibold"
               >
                 {isLoading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
             </form>
 
-            <div className="mt-4">
-              <div className="relative my-4">
+            <div className="mt-5">
+              <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700" />
+                  <div className="w-full border-t border-white/[0.06]" />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-800 text-gray-500">or</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-gray-900/80 text-gray-600 font-medium">or</span>
                 </div>
               </div>
 
@@ -115,27 +126,25 @@ export default function LoginPage() {
                 variant="secondary"
                 onClick={handleDemoLogin}
                 isLoading={isLoading}
-                className="w-full"
+                className="w-full py-2.5"
               >
                 Demo Access (admin/Admin@2024)
               </Button>
             </div>
 
-            <div className="mt-6 p-4 bg-gray-800/50 rounded-lg">
+            <div className="mt-7 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
               <div className="flex items-start gap-3">
-                <LockIcon className="w-5 h-5 text-blue-400 mt-0.5" />
-                <div>
-                  <p className="text-xs text-gray-300">
-                    This system is for authorized personnel only. All access is
-                    monitored and logged in compliance with security policies.
-                  </p>
-                </div>
+                <LockIcon className="w-4 h-4 text-blue-400/60 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  This system is for authorized personnel only. All access is
+                  monitored and logged in compliance with security policies.
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-[11px] text-gray-700 mt-6 font-medium">
           Protected by enterprise-grade security. GDPR & LGPD compliant.
         </p>
       </div>

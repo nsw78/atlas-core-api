@@ -1,15 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3B82F6"/>
-      <stop offset="100%" style="stop-color:#06B6D4"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="50%" style="stop-color:#3B82F6"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="a" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#22D3EE"/>
+      <stop offset="100%" style="stop-color:#6366F1"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="6" fill="url(#g)"/>
-  <circle cx="16" cy="16" r="9" fill="none" stroke="#FFF" stroke-width="1.5"/>
-  <ellipse cx="16" cy="16" rx="9" ry="3.5" fill="none" stroke="#FFF" stroke-width="0.8" opacity="0.6"/>
-  <ellipse cx="16" cy="16" rx="3.5" ry="9" fill="none" stroke="#FFF" stroke-width="0.8" opacity="0.6"/>
-  <line x1="16" y1="5" x2="16" y2="27" stroke="#FFF" stroke-width="0.5" opacity="0.3"/>
-  <line x1="5" y1="16" x2="27" y2="16" stroke="#FFF" stroke-width="0.5" opacity="0.3"/>
-  <circle cx="16" cy="16" r="1.5" fill="#FFF" opacity="0.9"/>
+  <rect width="32" height="32" rx="7" fill="url(#bg)" stroke="url(#glow)" stroke-width="0.8"/>
+  <!-- Globe grid -->
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#06B6D4" stroke-width="0.4" opacity="0.2"/>
+  <ellipse cx="16" cy="16" rx="11" ry="5" fill="none" stroke="#06B6D4" stroke-width="0.3" opacity="0.15"/>
+  <!-- A letterform -->
+  <path d="M16 7 L10.5 25 L13 25 L14.2 21 L17.8 21 L19 25 L21.5 25 L16 7Z" fill="url(#a)"/>
+  <path d="M14.8 19 L16 13.5 L17.2 19 Z" fill="#0F172A"/>
+  <!-- Orbital -->
+  <ellipse cx="16" cy="16" rx="13" ry="3.5" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.4" transform="rotate(-25 16 16)"/>
+  <!-- Data nodes -->
+  <circle cx="6" cy="12" r="1" fill="#06B6D4" opacity="0.7"/>
+  <circle cx="26" cy="20" r="1" fill="#06B6D4" opacity="0.7"/>
+  <circle cx="25" cy="10" r="0.8" fill="#8B5CF6" opacity="0.6"/>
 </svg>

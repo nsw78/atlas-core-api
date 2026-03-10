@@ -312,3 +312,54 @@ export interface AnalyticsFilter {
   sectors?: string[];
   riskLevels?: RiskLevel[];
 }
+
+// ============================================
+// SANCTIONS & TRADE INTELLIGENCE
+// ============================================
+export type SanctionsRiskLevel = "clear" | "review" | "match";
+export type SanctionListSource = "OFAC_SDN" | "EU_CONSOLIDATED" | "UN_SECURITY_COUNCIL" | "BIS_ENTITY" | "UK_OFSI";
+export type TradeRestrictionType = "embargo" | "tariff" | "quota" | "license_required" | "prohibition";
+
+export interface SanctionedCountry {
+  countryCode: string;
+  countryName: string;
+  flagEmoji: string;
+  programs: string[];
+  riskLevel: "critical" | "high" | "medium";
+  activeSince: string;
+  restrictions: string[];
+}
+
+export interface SanctionsScreening {
+  id: string;
+  entityName: string;
+  entityType: "individual" | "organization" | "vessel" | "aircraft";
+  riskLevel: SanctionsRiskLevel;
+  overallScore: number;
+  matchCount: number;
+  screenedAt: string;
+  processingTimeMs: number;
+}
+
+export interface TradePartnership {
+  countryCode: string;
+  countryName: string;
+  totalTradeUsd: number;
+  exportsUsd: number;
+  importsUsd: number;
+  tradeBalance: number;
+  isSanctioned: boolean;
+  rank: number;
+}
+
+export interface GlobalDataSource {
+  id: string;
+  name: string;
+  organization: string;
+  type: "sanctions" | "trade" | "economic" | "regulatory";
+  status: "connected" | "syncing" | "error" | "offline";
+  lastSync: string;
+  totalRecords: number;
+  updateFrequency: string;
+  sourceUrl: string;
+}

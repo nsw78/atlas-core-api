@@ -89,6 +89,24 @@ func SetupRoutes(r *gin.RouterGroup, cfg *config.Config, logger *zap.Logger) {
 		briefings.GET("/:id", proxy.forward("intelligence-service", "/api/v1/briefings/:id"))
 	}
 
+	// Sanctions Screening & Trade Intelligence
+	sanctions := r.Group("/sanctions")
+	{
+		sanctions.POST("/screen", proxy.forward("sanctions-screening", "/api/v1/sanctions/screen"))
+		sanctions.POST("/batch", proxy.forward("sanctions-screening", "/api/v1/sanctions/batch"))
+		sanctions.GET("/lists", proxy.forward("sanctions-screening", "/api/v1/sanctions/lists"))
+		sanctions.GET("/countries", proxy.forward("sanctions-screening", "/api/v1/sanctions/countries"))
+		sanctions.GET("/stats", proxy.forward("sanctions-screening", "/api/v1/sanctions/stats"))
+	}
+
+	trade := r.Group("/trade")
+	{
+		trade.POST("/intelligence", proxy.forward("sanctions-screening", "/api/v1/trade/intelligence"))
+		trade.GET("/partners/:country_code", proxy.forward("sanctions-screening", "/api/v1/trade/partners/:country_code"))
+		trade.GET("/restrictions", proxy.forward("sanctions-screening", "/api/v1/trade/restrictions"))
+		trade.GET("/commodities/:hs_code", proxy.forward("sanctions-screening", "/api/v1/trade/commodities/:hs_code"))
+	}
+
 	// Compliance & Audit
 	compliance := r.Group("/compliance")
 	{

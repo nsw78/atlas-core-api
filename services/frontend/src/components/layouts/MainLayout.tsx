@@ -15,16 +15,16 @@ export function MainLayout({ children, title, subtitle }: MainLayoutProps) {
   const { sidebarOpen } = useUIStore();
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-950 bg-mesh-gradient">
       <Sidebar />
       <div
         className={cn(
-          "transition-all duration-300",
+          "transition-all duration-300 ease-out",
           sidebarOpen ? "ml-64" : "ml-0"
         )}
       >
         <Header title={title} subtitle={subtitle} />
-        <main className="p-6">{children}</main>
+        <main className="p-6 animate-fade-in">{children}</main>
       </div>
     </div>
   );

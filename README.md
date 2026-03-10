@@ -1,16 +1,35 @@
+<div align="center">
+
+<img src="docs/atlas-logo.svg" alt="ATLAS Logo" width="180" />
+
 # ATLAS Core API
 
-**Strategic Intelligence Platform** | Enterprise-Grade Microservices Architecture
+### Strategic Intelligence Platform
 
-[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go&logoColor=white)]()
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat&logo=nextdotjs&logoColor=white)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=flat&logo=typescript&logoColor=white)]()
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=flat&logo=postgresql&logoColor=white)]()
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat&logo=redis&logoColor=white)]()
-[![Kafka](https://img.shields.io/badge/Kafka-7.5-231F20?style=flat&logo=apachekafka&logoColor=white)]()
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)]()
-[![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20PT--BR%20%7C%20ES-blue?style=flat)]()
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat)]()
+**Cloud-Native | DDD + CQRS | Event-Driven | Enterprise-Grade**
+
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=for-the-badge&logo=go&logoColor=white)]()
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)]()
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql&logoColor=white)]()
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)]()
+[![Kafka](https://img.shields.io/badge/Kafka-7.5-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)]()
+
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)]()
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=flat-square&logo=terraform&logoColor=white)]()
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)]()
+[![OpenTelemetry](https://img.shields.io/badge/Tracing-OpenTelemetry-000000?style=flat-square&logo=opentelemetry&logoColor=white)]()
+[![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)]()
+[![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20PT--BR%20%7C%20ES-blue?style=flat-square)]()
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)]()
+
+**29 Microservices** | **150+ API Endpoints** | **35+ Docker Containers** | **3 Languages (i18n)**
+
+[Quick Start](#quick-start) | [Architecture](#architecture) | [API Manual](docs/API_MANUAL.md) | [Contributing](#contributing)
+
+**[Portugues (BR)](README.pt-BR.md)** | **[Espanol](README.es.md)**
+
+</div>
 
 ---
 
@@ -18,15 +37,21 @@
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+  - [System Design](#system-overview)
+  - [DDD + CQRS Architecture](#ddd--cqrs-architecture)
+  - [Event-Driven Architecture](#event-driven-architecture)
+  - [Technology Stack](#technology-stack)
 - [Frontend Application](#frontend-application)
 - [Enterprise Features](#enterprise-features)
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
 - [Authentication & Authorization](#authentication--authorization)
+- [Event Catalog](#event-catalog)
 - [Service Registry](#service-registry)
 - [Database Schema](#database-schema)
 - [Middleware Pipeline](#middleware-pipeline)
 - [Observability](#observability)
+- [Infrastructure & DevOps](#infrastructure--devops)
 - [Configuration Reference](#configuration-reference)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
@@ -40,7 +65,7 @@
 
 ## Overview
 
-ATLAS is an enterprise-grade Strategic Intelligence platform designed for organizations that require strategic risk analysis, scenario simulation, geospatial intelligence, and near real-time decision support. Built on a cloud-native microservices architecture with 29 containerized services, it provides:
+ATLAS is an enterprise-grade **Strategic Intelligence Platform** built for organizations requiring strategic risk analysis, scenario simulation, geospatial intelligence, and near real-time decision support. Architected with **Domain-Driven Design (DDD)**, **CQRS**, and **Event-Driven Architecture** patterns across 29 cloud-native microservices, it provides:
 
 - **Multidimensional Risk Analysis** across Operational, Financial, Reputational, Geopolitical, and Compliance dimensions
 - **Machine Learning Pipeline** with MLflow experiment tracking, model serving, drift monitoring, and explainability (XAI)
@@ -58,41 +83,51 @@ ATLAS is an enterprise-grade Strategic Intelligence platform designed for organi
 
 ### System Overview
 
-```
-                                    +-------------------+
-                                    |    Frontend       |
-                                    |  Next.js + TS     |
-                                    |  :3004            |
-                                    +--------+----------+
-                                             |
-                                    +--------v----------+
-                                    |   API Gateway     |
-                                    |   Go + Gin        |
-                                    |   :8080           |
-                                    |                   |
-                                    | JWT Auth          |
-                                    | Rate Limiting     |
-                                    | Circuit Breaker   |
-                                    | Idempotency       |
-                                    | Request Signing   |
-                                    | Response Cache    |
-                                    +---+-----+-----+--+
-                                        |     |     |
-              +-------------------------+     |     +-------------------------+
-              |                               |                               |
-    +---------v--------+         +------------v----------+        +-----------v---------+
-    |   IAM Service    |         | Risk Assessment       |        | Graph Intelligence  |
-    |   :8081          |         | :8082                 |        | :8089               |
-    |                  |         |                       |        |                     |
-    | User Management  |         | Multi-dimensional     |        | Entity Resolution   |
-    | RBAC             |         | Risk Scoring          |        | Relationship Maps   |
-    | Token Blacklist  |         | Alert Engine          |        | Community Detection |
-    +------------------+         +-----------------------+        +---------------------+
-              |                               |                               |
-    +---------v--------+         +------------v----------+        +-----------v---------+
-    |   PostgreSQL     |         |   Redis               |        |   Kafka             |
-    |   :5437          |         |   :6392               |        |   :9093             |
-    +------------------+         +-----------------------+        +---------------------+
+```mermaid
+graph TB
+    subgraph Client["Client Layer"]
+        FE["Frontend<br/>Next.js + TypeScript<br/>:3004"]
+    end
+
+    subgraph Gateway["API Gateway Layer"]
+        GW["API Gateway<br/>Go + Gin | :8080<br/>JWT Auth | Rate Limiting<br/>Circuit Breaker | Idempotency<br/>Request Signing | Response Cache"]
+    end
+
+    subgraph Services["Microservices Layer"]
+        IAM["IAM Service<br/>:8081<br/>User Management<br/>RBAC | Token Blacklist"]
+        RISK["Risk Assessment<br/>:8082<br/>Multi-dimensional<br/>Risk Scoring | Alert Engine"]
+        GRAPH["Graph Intelligence<br/>:8089<br/>Entity Resolution<br/>Relationship Maps<br/>Community Detection"]
+        NLP["NLP Service<br/>:8088"]
+        ML["ML Infrastructure<br/>:8087"]
+        SIM["Scenario Simulation<br/>:8093"]
+    end
+
+    subgraph Data["Data Layer"]
+        PG["PostgreSQL :5437"]
+        PGIS["PostGIS :5438"]
+        RD["Redis :6392"]
+        KF["Kafka :9093"]
+    end
+
+    FE --> GW
+    GW --> IAM
+    GW --> RISK
+    GW --> GRAPH
+    GW --> NLP
+    GW --> ML
+    GW --> SIM
+    IAM --> PG
+    RISK --> PG
+    RISK --> RD
+    GRAPH --> PG
+    IAM --> KF
+    RISK --> KF
+    GRAPH --> KF
+
+    style Client fill:#1a1a2e,stroke:#0f3460,color:#e94560
+    style Gateway fill:#16213e,stroke:#0f3460,color:#e94560
+    style Services fill:#0f3460,stroke:#533483,color:#e94560
+    style Data fill:#1a1a2e,stroke:#533483,color:#e94560
 ```
 
 ### Technology Stack
@@ -112,12 +147,126 @@ ATLAS is an enterprise-grade Strategic Intelligence platform designed for organi
 
 ### Design Principles
 
-- **Config-Driven Service Registry**: 29 backend services registered via environment variables with sensible defaults
+- **Domain-Driven Design**: Bounded contexts with aggregates, value objects, and domain events
+- **CQRS**: Command-Query Responsibility Segregation for write/read optimization
+- **Event-Driven**: Kafka-based event streaming across all bounded contexts
+- **Config-Driven Service Registry**: 29 backend services registered via environment variables
 - **Circuit Breaker Pattern**: Sony gobreaker protecting all inter-service communication
 - **Graceful Degradation**: In-memory cache fallback when Redis is unavailable
 - **Zero-Trust Security**: JWT + API Key + HMAC request signing layers
 - **Non-Root Containers**: All Docker images run as unprivileged `appuser` (uid 1000)
-- **Layered Architecture**: `cmd/` > `internal/api/` > `internal/application/` > `internal/domain/` > `internal/infrastructure/`
+- **Clean Architecture**: `cmd/` > `interfaces/` > `application/` > `domain/` > `infrastructure/`
+
+### DDD + CQRS Architecture
+
+Each Go microservice follows Domain-Driven Design with CQRS separation:
+
+```mermaid
+graph LR
+    subgraph Domain["domain/"]
+        AGG["aggregates/<br/>UserAggregate<br/>RiskAssessment"]
+        VO["valueobjects/<br/>Email, Password<br/>UserID"]
+        EVT["events/<br/>UserCreated<br/>RiskAssessed"]
+        REPO["repositories/<br/>interfaces (ports)"]
+    end
+
+    subgraph Application["application/"]
+        CMD["commands/<br/>CreateUser<br/>AssessRisk"]
+        QRY["queries/<br/>GetUser<br/>GetRiskTrends"]
+        HDL["handlers/<br/>Command & Query<br/>handlers"]
+        DTO["dto/<br/>Data Transfer<br/>Objects"]
+    end
+
+    subgraph Infra["infrastructure/"]
+        PERS["persistence/<br/>PostgreSQL"]
+        MSG["messaging/<br/>Kafka publishers"]
+        CACHE["cache/<br/>Redis + in-memory"]
+        EXT["external/<br/>Third-party APIs"]
+    end
+
+    subgraph Interfaces["interfaces/"]
+        HTTP["http/<br/>REST API (Gin)"]
+        GRPC["grpc/<br/>gRPC services"]
+        KEVT["events/<br/>Kafka consumers"]
+    end
+
+    HTTP --> HDL
+    GRPC --> HDL
+    HDL --> CMD
+    HDL --> QRY
+    CMD --> AGG
+    AGG --> VO
+    AGG --> EVT
+    HDL --> REPO
+    REPO -.->|implements| PERS
+    EVT -.->|publishes| MSG
+    HDL --> DTO
+
+    style Domain fill:#1b4332,stroke:#2d6a4f,color:#d8f3dc
+    style Application fill:#003049,stroke:#005f73,color:#caf0f8
+    style Infra fill:#3c1642,stroke:#7b2d8e,color:#e0aaff
+    style Interfaces fill:#6b2737,stroke:#a4133c,color:#ffccd5
+```
+
+### Event-Driven Architecture
+
+All domain events flow through Kafka with structured envelopes:
+
+```mermaid
+graph TB
+    subgraph Producers["Event Producers"]
+        IAM2["IAM Service<br/>UserCreated<br/>UserLoggedIn<br/>RoleAssigned"]
+        RISK2["Risk Service<br/>RiskAssessed<br/>AlertTriggered<br/>ThresholdBreached"]
+        GRAPH2["Graph Intelligence<br/>GraphUpdated"]
+    end
+
+    subgraph Kafka["Apache Kafka"]
+        T1["atlas.user.*"]
+        T2["atlas.risk.*"]
+        T3["atlas.alert.*"]
+        T4["atlas.graph.*"]
+        T5["atlas.sim.*"]
+        T6["atlas.osint.*"]
+    end
+
+    subgraph Consumers["Event Consumers"]
+        AUDIT["Audit Logging"]
+        DASH["Dashboard<br/>(WebSocket)"]
+        ANALYTICS["Analytics<br/>Pipeline"]
+        NOTIFY["Notification<br/>Service"]
+    end
+
+    IAM2 --> T1
+    RISK2 --> T2
+    RISK2 --> T3
+    GRAPH2 --> T4
+    T1 --> AUDIT
+    T1 --> ANALYTICS
+    T2 --> DASH
+    T2 --> ANALYTICS
+    T3 --> NOTIFY
+    T3 --> DASH
+    T4 --> ANALYTICS
+    T5 --> DASH
+    T6 --> ANALYTICS
+
+    style Producers fill:#1a1a2e,stroke:#e94560,color:#e94560
+    style Kafka fill:#231F20,stroke:#e94560,color:#ffffff
+    style Consumers fill:#16213e,stroke:#0f3460,color:#e94560
+```
+
+**Event Envelope Format:**
+```json
+{
+  "event_id": "uuid-v4",
+  "event_type": "atlas.risk.assessed",
+  "aggregate_id": "entity-uuid",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "version": 1,
+  "source": "risk-assessment",
+  "payload": { ... }
+}
+```
 
 ---
 
@@ -143,7 +292,7 @@ The ATLAS frontend is a Next.js 14 dashboard built with TypeScript, Tailwind CSS
 | **Framework** | Next.js 14 (App Router) |
 | **Language** | TypeScript 5.5 |
 | **Styling** | Tailwind CSS 3.4 |
-| **State** | Zustand 4.5 (auth, UI, dashboard, map, platform stores) |
+| **State** | Zustand 4.5 (auth, UI, dashboard, map, platform, threat, simulation, geo stores) |
 | **Server State** | TanStack React Query 5.5 |
 | **Charts** | Recharts 2.12 |
 | **Animations** | Framer Motion 11.3 |
@@ -155,7 +304,7 @@ Full multi-language support with automatic browser detection and persistent pref
 
 | Language | Locale | Status |
 |----------|--------|--------|
-| English | `en` | Complete |
+| English | `en` | Complete (default) |
 | Portuguese (Brazil) | `pt-BR` | Complete |
 | Spanish | `es` | Complete |
 
@@ -168,12 +317,20 @@ Full multi-language support with automatic browser detection and persistent pref
 
 ### Component Architecture
 
-```
-components/
-├── atoms/          Button, Card, Badge, StatusBadge
-├── molecules/      KPICard, Charts, AlertItem, RiskGauge
-├── organisms/      Header (notifications, user menu, language switcher), Sidebar (navigation)
-└── layouts/        MainLayout (sidebar + header + content)
+```mermaid
+graph TB
+    subgraph Atomic["Atomic Design"]
+        ATOMS["atoms/<br/>Button, Card<br/>Badge, StatusBadge"]
+        MOLECULES["molecules/<br/>KPICard, Charts<br/>RiskHeatmap<br/>ThreatTimeline<br/>ServiceHealthGrid"]
+        ORGANISMS["organisms/<br/>Header (notifications,<br/>user menu, i18n)<br/>Sidebar (navigation)"]
+        LAYOUTS["layouts/<br/>MainLayout<br/>(sidebar + header + content)"]
+    end
+
+    ATOMS --> MOLECULES
+    MOLECULES --> ORGANISMS
+    ORGANISMS --> LAYOUTS
+
+    style Atomic fill:#0f3460,stroke:#533483,color:#e94560
 ```
 
 ### State Management (Zustand Stores)
@@ -185,6 +342,33 @@ components/
 | `useDashboardStore` | Time range, risk level filters, refresh interval |
 | `useMapStore` | Map viewport, visible layers, selected feature |
 | `usePlatformStore` | Service health status, last health check |
+| `useThreatStore` | Threat event management, severity filtering, acknowledgment |
+| `useSimulationStore` | Simulation runs, progress tracking, active run state |
+| `useGeoStore` | Map viewport, layer controls, feature selection, map mode |
+
+### Typed API SDK
+
+```mermaid
+graph LR
+    subgraph SDK["src/sdk/"]
+        CLIENT["apiClient<br/>Base HTTP client<br/>JWT auto-inject"]
+        AUTH["authApi<br/>login, register<br/>refresh, logout"]
+        RISK3["riskApi<br/>assess, trends<br/>alerts, profiles"]
+        GRAPH3["graphApi<br/>entities, relations<br/>centrality"]
+        SIM2["simulationApi<br/>scenarios, results<br/>compare"]
+        GEO["geospatialApi<br/>query, zones<br/>supply chains"]
+        PLAT["platformApi<br/>status, services<br/>health"]
+    end
+
+    CLIENT --> AUTH
+    CLIENT --> RISK3
+    CLIENT --> GRAPH3
+    CLIENT --> SIM2
+    CLIENT --> GEO
+    CLIENT --> PLAT
+
+    style SDK fill:#003049,stroke:#005f73,color:#caf0f8
+```
 
 ### Custom Hooks
 
@@ -689,44 +873,30 @@ The initial migration seeds:
 
 Requests flow through the following middleware chain in order:
 
-```
-Request
-  |
-  v
-[1] Recovery (panic handler with structured logging)
-  |
-[2] Request ID (UUID generation, X-Request-ID header)
-  |
-[3] Trace Context (X-Trace-ID propagation)
-  |
-[4] Logger (structured access log with latency, status, sizes)
-  |
-[5] Security Headers (X-Frame-Options, CSP, HSTS, etc.)
-  |
-[6] JSON Normalization (UTF-8 charset enforcement)
-  |
-[7] Version Header (API-Version, X-API-Version)
-  |
-[8] CORS (configurable origins, methods, credentials)
-  |
-[9] Rate Limiter (token bucket, configurable RPS)
-  |
-[10] Body Size Limit (10MB max)
-  |
-[11] Gzip Compression
-  |
-  +-- PUBLIC ROUTES (login, register, refresh, validate, health)
-  |
-  +-- PROTECTED ROUTES
-        |
-        [12] JWT Authentication (Bearer token validation)
-        |
-        [13] Idempotency Key (24h deduplication for mutations)
-        |
-        [14] Circuit Breaker (per-service, 5 failures / 30s timeout)
-        |
-        v
-      Handler -> Service Proxy -> Backend Service
+```mermaid
+graph TB
+    REQ["Request"] --> M1["1 Recovery<br/>Panic handler"]
+    M1 --> M2["2 Request ID<br/>UUID generation"]
+    M2 --> M3["3 Trace Context<br/>X-Trace-ID"]
+    M3 --> M4["4 Logger<br/>Structured access log"]
+    M4 --> M5["5 Security Headers<br/>CSP, HSTS, X-Frame"]
+    M5 --> M6["6 JSON Normalization<br/>UTF-8 charset"]
+    M6 --> M7["7 Version Header<br/>API-Version"]
+    M7 --> M8["8 CORS<br/>Origins, methods"]
+    M8 --> M9["9 Rate Limiter<br/>Token bucket"]
+    M9 --> M10["10 Body Size Limit<br/>10MB max"]
+    M10 --> M11["11 Gzip Compression"]
+    M11 --> PUB["PUBLIC ROUTES<br/>login, register, health"]
+    M11 --> PROT["PROTECTED ROUTES"]
+    PROT --> M12["12 JWT Authentication"]
+    M12 --> M13["13 Idempotency Key<br/>24h deduplication"]
+    M13 --> M14["14 Circuit Breaker<br/>5 failures / 30s"]
+    M14 --> HANDLER["Handler -> Service Proxy -> Backend"]
+
+    style REQ fill:#e94560,stroke:#e94560,color:#fff
+    style HANDLER fill:#1b4332,stroke:#2d6a4f,color:#d8f3dc
+    style PUB fill:#003049,stroke:#005f73,color:#caf0f8
+    style PROT fill:#6b2737,stroke:#a4133c,color:#ffccd5
 ```
 
 ---
@@ -864,7 +1034,9 @@ All configuration is managed via environment variables. See `.env.example` for t
 atlas-core-api/
 |-- docker-compose.yml              # Service orchestration
 |-- .env.example                    # Environment configuration template
-|-- README.md                       # This file
+|-- README.md                       # This file (English)
+|-- README.pt-BR.md                 # Portugues (Brasil)
+|-- README.es.md                    # Espanol
 |-- migrations/
 |   |-- 000001_init_schema.up.sql   # Core tables (IAM, risk, audit, ingestion)
 |   |-- 000002_geospatial.up.sql    # PostGIS extensions
@@ -888,17 +1060,28 @@ atlas-core-api/
 |   |   |           |-- circuitbreaker/  # Sony gobreaker pool
 |   |   |-- Dockerfile
 |   |
-|   |-- iam/                        # Identity & Access Management (Go) - :8081
+|   |-- iam/                        # Identity & Access Management (Go, DDD+CQRS) - :8081
 |   |   |-- cmd/main.go
 |   |   |-- internal/
-|   |   |   |-- api/handlers/       # Auth, user, role handlers
+|   |   |   |-- domain/
+|   |   |   |   |-- aggregates/     # UserAggregate (aggregate root)
+|   |   |   |   |-- valueobjects/   # Email, HashedPassword, UserID
+|   |   |   |   |-- events/         # UserCreated, UserLoggedIn, LoginFailed
+|   |   |   |   |-- repositories/   # UserRepository, RoleRepository (interfaces)
+|   |   |   |-- application/
+|   |   |   |   |-- commands/       # CreateUserCommand, LoginUserCommand
+|   |   |   |   |-- queries/        # GetUserQuery, ListUsersQuery
+|   |   |   |   |-- handlers/       # CreateUserHandler, LoginUserHandler
+|   |   |   |   |-- dto/            # UserDTO, AuthTokensDTO
+|   |   |   |-- infrastructure/
+|   |   |   |   |-- persistence/    # PostgreSQL repository implementations
+|   |   |   |   |-- messaging/      # Kafka event publisher
+|   |   |   |   |-- config/         # Environment-based configuration
+|   |   |   |-- api/handlers/       # HTTP handlers (Gin)
 |   |   |   |-- api/middleware/      # JWT auth, role/permission guards
-|   |   |   |-- application/        # AuthService, UserService
-|   |   |   |-- domain/             # User, Role entities
-|   |   |   |-- infrastructure/     # Repository, config
 |   |   |-- Dockerfile
 |   |
-|   |-- risk-assessment/            # Risk Assessment (Go) - :8082
+|   |-- risk-assessment/            # Risk Assessment (Go, DDD+CQRS) - :8082
 |   |-- ingestion/                  # Data Ingestion (Go) + Kafka
 |   |-- normalization/              # Data Normalization (Go) + Kafka
 |   |-- audit-logging/              # Audit Logging (Go) + Kafka
@@ -906,14 +1089,18 @@ atlas-core-api/
 |   |-- frontend/                   # Next.js 14 Dashboard - :3000
 |   |   |-- src/
 |   |   |   |-- app/                # Pages (dashboard, analytics, geospatial, simulations, compliance, login)
-|   |   |   |-- components/        # Atoms, Molecules, Organisms, Layouts
+|   |   |   |-- components/
+|   |   |   |   |-- atoms/          # Button, Card, Badge, StatusBadge
+|   |   |   |   |-- molecules/      # KPICard, Charts, RiskHeatmap, ThreatTimeline, ServiceHealthGrid
+|   |   |   |   |-- organisms/      # Header, Sidebar (with i18n language switcher)
+|   |   |   |   |-- layouts/        # MainLayout (sidebar + header + content)
 |   |   |   |-- contexts/          # AuthContext (JWT session management)
-|   |   |   |-- hooks/             # useAlerts, useAutoRefresh
-|   |   |   |-- i18n/              # Internationalization (en, pt-BR, es)
-|   |   |   |-- services/api/      # API client & endpoint modules
-|   |   |   |-- store/             # Zustand stores (auth, UI, dashboard, map, platform)
+|   |   |   |-- hooks/             # useAlerts, useAutoRefresh, useAuth, useI18n
+|   |   |   |-- i18n/              # Internationalization (en, pt-BR, es) - 500+ keys
+|   |   |   |-- sdk/               # Typed SDK: apiClient, authApi, riskApi, graphApi, simulationApi, geospatialApi, platformApi
+|   |   |   |-- store/             # Zustand stores (auth, UI, dashboard, map, platform, threat, simulation, geo)
 |   |   |   |-- types/             # TypeScript definitions
-|   |   |   |-- utils/             # Utility functions (formatDate, etc.)
+|   |   |   |-- utils/             # Utility functions (formatDate, cn, etc.)
 |   |   |-- Dockerfile
 |   |
 |   |-- ml-infrastructure/          # ML Pipeline (Python)
@@ -936,14 +1123,94 @@ atlas-core-api/
 |   |-- security-certification/     # Security Certification (Python)
 |   |-- continuous-improvement/     # Continuous Improvement (Python)
 |
+|-- pkg/
+|   |-- events/                      # Shared Kafka event schemas (Go)
+|       |-- events.go                # Event envelope, topic constants, payload types
+|
+|-- infrastructure/
+|   |-- terraform/                   # AWS infrastructure (ECS, RDS, Redis, MSK)
+|       |-- main.tf
+|       |-- variables.tf
+|       |-- outputs.tf
+|
+|-- .github/
+|   |-- workflows/
+|       |-- ci.yml                   # CI/CD pipeline (lint, test, security, build, deploy)
+|
 |-- docs/
-|   |-- API_MANUAL.md                 # Complete API endpoint reference
+|   |-- atlas-logo.svg              # Project logo/favicon
+|   |-- events/README.md            # Event catalog documentation
+|   |-- API_MANUAL.md               # Complete API endpoint reference
 |   |-- PHASE_1_MVP.md
 |   |-- PHASE_2_ANALYTICS.md
 |   |-- PHASE_3_DECISION_SUPPORT.md
 |   |-- PHASE_4_STRATEGIC_PLATFORM.md
 |   |-- PHASE_5_OPTIMIZATION.md
 |   |-- AI_ML_STRATEGY.md
+```
+
+---
+
+## Event Catalog
+
+All domain events are published to Kafka with guaranteed ordering per aggregate.
+
+| Topic | Producer | Consumers | Description |
+|-------|----------|-----------|-------------|
+| `atlas.user.created` | IAM | Audit, Notification | New user registration |
+| `atlas.user.logged_in` | IAM | Audit, Analytics | Successful login |
+| `atlas.user.login_failed` | IAM | Security, Audit | Failed login attempt |
+| `atlas.user.role_assigned` | IAM | Audit, Notification | Role assignment |
+| `atlas.user.deactivated` | IAM | Audit, Cleanup | Account deactivation |
+| `atlas.risk.assessed` | Risk Assessment | Dashboard, Analytics | Risk assessment completed |
+| `atlas.alert.triggered` | Risk Assessment | Notification, Dashboard | Risk threshold breach |
+| `atlas.alert.resolved` | Risk Assessment | Dashboard, Audit | Alert resolution |
+| `atlas.simulation.completed` | Scenario Simulation | Dashboard, Analytics | Simulation finished |
+| `atlas.osint.collected` | News Aggregator | NLP, Risk | New intelligence data |
+| `atlas.nlp.analyzed` | NLP Service | Risk, Graph | NLP analysis result |
+| `atlas.graph.updated` | Graph Intelligence | Risk, Dashboard | Graph topology change |
+| `atlas.compliance.violation` | Compliance | Audit, Notification | Compliance breach |
+| `atlas.ingestion.completed` | Ingestion | Normalization, Audit | Data ingestion batch |
+
+**Partitioning**: User events by `user_id`, risk events by `entity_id`, alerts by `alert_id`.
+
+---
+
+## Infrastructure & DevOps
+
+### CI/CD Pipeline (GitHub Actions)
+
+```mermaid
+graph LR
+    PUSH["Push to<br/>main/develop"] --> LINT["1 Lint &<br/>Static Analysis<br/>Go + ESLint"]
+    LINT --> TEST["2 Unit Tests<br/>Go matrix +<br/>Frontend build"]
+    TEST --> SEC["3 Security Scan<br/>Trivy vulnerability<br/>scanner"]
+    SEC --> BUILD["4 Docker Build<br/>& Push<br/>GHCR, multi-stage"]
+    BUILD --> DEPLOY["5 Deploy<br/>Terraform +<br/>ECS Fargate"]
+
+    style PUSH fill:#e94560,stroke:#e94560,color:#fff
+    style DEPLOY fill:#1b4332,stroke:#2d6a4f,color:#d8f3dc
+```
+
+### Terraform Infrastructure
+
+Production-ready AWS infrastructure:
+
+| Resource | Service | Configuration |
+|----------|---------|---------------|
+| **Compute** | ECS Fargate | Auto-scaling, Spot instances |
+| **Database** | RDS PostgreSQL 15 | Multi-AZ, encrypted, performance insights |
+| **Cache** | ElastiCache Redis 7 | Cluster mode, encryption at rest |
+| **Messaging** | MSK (Kafka) | 3 brokers, TLS, CloudWatch logs |
+| **Network** | VPC | 3 AZs, public/private subnets, NAT Gateway |
+| **Monitoring** | CloudWatch | Container insights, log groups, alarms |
+
+```bash
+# Deploy infrastructure
+cd infrastructure/terraform
+terraform init
+terraform plan -var="environment=production"
+terraform apply
 ```
 
 ---
@@ -1079,18 +1346,25 @@ docker compose exec redis redis-cli FLUSHALL
 | Metric                       | Value     |
 |------------------------------|-----------|
 | Total Microservices          | 29        |
-| Go Services (Refactored)     | 7         |
+| Go Services (DDD + CQRS)    | 7         |
 | Python Services              | 17+       |
 | Frontend Pages               | 6         |
 | API Endpoints                | 150+      |
+| Kafka Event Topics           | 18        |
+| Domain Aggregates            | 5         |
+| CQRS Commands                | 12        |
+| CQRS Queries                 | 10        |
 | Database Tables              | 27        |
 | Database Migrations          | 3         |
 | Middleware Components        | 14        |
 | Service Registry Entries     | 29        |
 | Docker Containers            | 35+       |
 | Supported Languages (i18n)   | 3 (EN, PT-BR, ES) |
-| Translation Keys             | 400+      |
+| Translation Keys             | 500+      |
 | Primary Languages            | Go, Python, TypeScript |
+| Architecture Patterns        | DDD, CQRS, Event Sourcing, Circuit Breaker |
+| CI/CD                        | GitHub Actions (lint, test, security, build, deploy) |
+| Infrastructure as Code       | Terraform (AWS: ECS, RDS, ElastiCache, MSK) |
 
 ---
 
@@ -1166,4 +1440,16 @@ Licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
 ---
 
-**ATLAS** -- Strategic Intelligence Platform | Enterprise-Grade Architecture
+<div align="center">
+
+<img src="docs/atlas-logo.svg" alt="ATLAS" width="80" />
+
+**ATLAS** | Strategic Intelligence Platform
+
+*DDD + CQRS + Event-Driven Architecture*
+
+*Built with Go, Next.js, PostgreSQL, Redis, Kafka, Terraform*
+
+[Report Bug](../../issues) | [Request Feature](../../issues) | [API Manual](docs/API_MANUAL.md)
+
+</div>

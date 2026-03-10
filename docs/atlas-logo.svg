@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E293B;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="inner" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#22D3EE;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#6366F1;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="248" fill="url(#bg)" stroke="url(#glow)" stroke-width="4"/>
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="url(#glow)" stroke-width="1.5" opacity="0.3"/>
+  <!-- Globe grid lines -->
+  <ellipse cx="256" cy="256" rx="160" ry="160" fill="none" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
+  <ellipse cx="256" cy="256" rx="160" ry="80" fill="none" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
+  <ellipse cx="256" cy="256" rx="80" ry="160" fill="none" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
+  <line x1="96" y1="256" x2="416" y2="256" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
+  <line x1="256" y1="96" x2="256" y2="416" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
+  <!-- ATLAS "A" letterform - geometric/tech style -->
+  <path d="M256 120 L176 380 L206 380 L224 320 L288 320 L306 380 L336 380 L256 120Z" fill="url(#inner)"/>
+  <path d="M234 290 L256 210 L278 290 Z" fill="#0F172A"/>
+  <!-- Orbital rings -->
+  <ellipse cx="256" cy="256" rx="190" ry="50" fill="none" stroke="url(#glow)" stroke-width="2" opacity="0.5" transform="rotate(-30 256 256)"/>
+  <ellipse cx="256" cy="256" rx="190" ry="50" fill="none" stroke="url(#glow)" stroke-width="2" opacity="0.3" transform="rotate(30 256 256)"/>
+  <!-- Data nodes on orbital -->
+  <circle cx="120" cy="180" r="6" fill="#06B6D4" opacity="0.8"/>
+  <circle cx="392" cy="332" r="6" fill="#06B6D4" opacity="0.8"/>
+  <circle cx="380" cy="170" r="5" fill="#8B5CF6" opacity="0.7"/>
+  <circle cx="132" cy="342" r="5" fill="#8B5CF6" opacity="0.7"/>
+  <circle cx="256" cy="80" r="4" fill="#22D3EE" opacity="0.6"/>
+  <circle cx="256" cy="432" r="4" fill="#22D3EE" opacity="0.6"/>
+</svg>

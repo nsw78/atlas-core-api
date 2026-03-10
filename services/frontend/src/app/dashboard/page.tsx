@@ -53,16 +53,16 @@ function AlertModal({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4 glass-elevated rounded-2xl shadow-2xl animate-scale-in">
         {/* Header */}
-        <div className={`p-6 border-b border-gray-700 ${sev.bg}`}>
+        <div className={`p-6 border-b border-white/[0.06] ${sev.bg}`}>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${sev.bg} ${sev.color} border ${sev.border}`}>
+                <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ${sev.bg} ${sev.color} border ${sev.border}`}>
                   {sev.label}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-white/[0.06] text-gray-300 border border-white/[0.08]">
                   {category?.label || alert.category}
                 </span>
                 <span className="text-xs text-gray-400">{alert.id}</span>
@@ -71,7 +71,7 @@ function AlertModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -89,7 +89,7 @@ function AlertModal({
           </div>
 
           {/* Metadata Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetadataItem label={t("dashboard.alertModal.source")} value={alert.source} />
             <MetadataItem label={t("dashboard.alertModal.region")} value={alert.region} />
             <MetadataItem label={t("dashboard.alertModal.country")} value={alert.country || "N/A"} />
@@ -104,7 +104,7 @@ function AlertModal({
           <div>
             <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.impactAssessment")}</h3>
             <p className="text-sm text-gray-400">{alert.impact}</p>
-            <div className="mt-3 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="mt-3 h-2 bg-white/[0.06] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${alert.estimatedImpactScore >= 80 ? "bg-red-500" : alert.estimatedImpactScore >= 60 ? "bg-amber-500" : "bg-emerald-500"}`}
                 style={{ width: `${alert.estimatedImpactScore}%` }}
@@ -117,7 +117,7 @@ function AlertModal({
             <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">{t("dashboard.relatedEntities")}</h3>
             <div className="flex flex-wrap gap-2">
               {alert.relatedEntities.map((entity) => (
-                <span key={entity} className="px-3 py-1 bg-gray-800 border border-gray-600 rounded-lg text-xs text-gray-300">
+                <span key={entity} className="px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-gray-300">
                   {entity}
                 </span>
               ))}
@@ -162,23 +162,23 @@ function AlertModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-700 flex items-center justify-between">
+        <div className="p-6 border-t border-white/[0.06] flex items-center justify-between">
           <button
             onClick={() => { onDismiss(alert.id); onClose(); }}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
           >
             {t("dashboard.alertModal.dismiss")}
           </button>
           <div className="flex items-center gap-3">
             <button
               onClick={() => { onAcknowledge(alert.id); onClose(); }}
-              className="px-4 py-2 text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/30 transition-colors"
+              className="px-4 py-2 text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-colors"
             >
               {t("dashboard.alertModal.acknowledge")}
             </button>
             <button
               onClick={() => { onInvestigate(alert.id); onClose(); }}
-              className="px-4 py-2 text-sm bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 transition-colors"
+              className="px-4 py-2 text-sm bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-colors"
             >
               {t("dashboard.alertModal.investigate")}
             </button>
@@ -191,8 +191,8 @@ function AlertModal({
 
 function MetadataItem({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-3">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
+    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+      <p className="text-[11px] text-gray-500 mb-1">{label}</p>
       <p className={`text-sm font-medium ${highlight ? "text-amber-400" : "text-white"}`}>{value}</p>
     </div>
   );
@@ -232,12 +232,12 @@ export default function DashboardPage() {
 
   // KPI data for the top strip
   const kpis = [
-    { label: t("dashboard.riskIndex"), value: "67", trend: "+5.2%", color: "text-red-400", icon: ShieldIcon },
-    { label: t("dashboard.activeThreats"), value: "23", trend: "+12%", color: "text-amber-400", icon: AlertTriangleIcon },
-    { label: t("dashboard.unreadAlerts"), value: String(unreadCount), trend: "", color: "text-blue-400", icon: InboxIcon },
-    { label: t("risk.critical"), value: String(criticalCount), trend: "", color: "text-red-500", icon: FireIcon },
-    { label: t("dashboard.dataSources"), value: "847", trend: "+1.8%", color: "text-emerald-400", icon: DatabaseIcon },
-    { label: t("dashboard.modelAccuracyLabel"), value: "94.2%", trend: "+1.2%", color: "text-cyan-400", icon: CpuIcon },
+    { label: t("dashboard.riskIndex"), value: "67", trend: "+5.2%", color: "text-red-400", glowColor: "rose", icon: ShieldIcon },
+    { label: t("dashboard.activeThreats"), value: "23", trend: "+12%", color: "text-amber-400", glowColor: "amber", icon: AlertTriangleIcon },
+    { label: t("dashboard.unreadAlerts"), value: String(unreadCount), trend: "", color: "text-blue-400", glowColor: "blue", icon: InboxIcon },
+    { label: t("risk.critical"), value: String(criticalCount), trend: "", color: "text-red-500", glowColor: "rose", icon: FireIcon },
+    { label: t("dashboard.dataSources"), value: "847", trend: "+1.8%", color: "text-emerald-400", glowColor: "emerald", icon: DatabaseIcon },
+    { label: t("dashboard.modelAccuracyLabel"), value: "94.2%", trend: "+1.2%", color: "text-cyan-400", glowColor: "cyan", icon: CpuIcon },
   ];
 
   return (
@@ -255,16 +255,36 @@ export default function DashboardPage() {
       <div className="space-y-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {kpis.map((kpi) => (
-            <div key={kpi.label} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-                <span className="text-xs text-gray-400">{kpi.label}</span>
+          {kpis.map((kpi, index) => (
+            <div
+              key={kpi.label}
+              className="group relative glass-card rounded-2xl p-4 hover:-translate-y-0.5 transition-all duration-300 animate-slide-up"
+              style={{ animationDelay: `${index * 75}ms`, animationFillMode: "backwards" }}
+            >
+              {/* Subtle top glow line */}
+              <div className={`absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent ${
+                kpi.glowColor === "rose" ? "via-rose-500/30" :
+                kpi.glowColor === "amber" ? "via-amber-500/30" :
+                kpi.glowColor === "blue" ? "via-blue-500/30" :
+                kpi.glowColor === "emerald" ? "via-emerald-500/30" :
+                "via-cyan-500/30"
+              } to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                  kpi.glowColor === "rose" ? "bg-rose-500/10" :
+                  kpi.glowColor === "amber" ? "bg-amber-500/10" :
+                  kpi.glowColor === "blue" ? "bg-blue-500/10" :
+                  kpi.glowColor === "emerald" ? "bg-emerald-500/10" :
+                  "bg-cyan-500/10"
+                }`}>
+                  <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                </div>
               </div>
-              <p className="text-xl font-bold text-white">{kpi.value}</p>
+              <p className="text-[11px] text-gray-500 font-medium mb-1">{kpi.label}</p>
+              <p className="text-2xl font-bold text-white tracking-tight">{kpi.value}</p>
               {kpi.trend && (
-                <span className={`text-xs ${kpi.trend.startsWith("+") ? "text-red-400" : "text-emerald-400"}`}>
-                  {kpi.trend} {t("dashboard.vsLastPeriod")}
+                <span className={`text-[11px] font-medium ${kpi.trend.startsWith("+") ? "text-red-400" : "text-emerald-400"}`}>
+                  {kpi.trend} <span className="text-gray-600">{t("dashboard.vsLastPeriod")}</span>
                 </span>
               )}
             </div>
@@ -274,7 +294,7 @@ export default function DashboardPage() {
         {/* Main Content: Chart + Status */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Risk Trend Chart */}
-          <div className="lg:col-span-2 bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <div className="lg:col-span-2 glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">{t("dashboard.incidentTrend")} (30 {t("analytics.days")})</h2>
@@ -284,10 +304,10 @@ export default function DashboardPage() {
                 {/* Auto-refresh controls */}
                 <button
                   onClick={autoRefresh.toggleActive}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-colors ${
                     autoRefresh.isActive
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                      : "bg-gray-700 text-gray-400 border border-gray-600"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-white/[0.04] text-gray-400 border border-white/[0.08]"
                   }`}
                 >
                   <div className={`w-1.5 h-1.5 rounded-full ${autoRefresh.isActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
@@ -295,7 +315,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={autoRefresh.manualRefresh}
-                  className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
                   title="Refresh now"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,7 +337,7 @@ export default function DashboardPage() {
                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                   <XAxis
                     dataKey="date"
                     stroke="#6b7280"
@@ -326,7 +346,7 @@ export default function DashboardPage() {
                   />
                   <YAxis stroke="#6b7280" fontSize={10} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                    contentStyle={{ backgroundColor: "rgba(17,24,39,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", backdropFilter: "blur(12px)" }}
                     labelStyle={{ color: "#9ca3af" }}
                   />
                   <Area type="monotone" dataKey="total" stroke="#3b82f6" fill="url(#gradTotal)" strokeWidth={2} />
@@ -341,48 +361,53 @@ export default function DashboardPage() {
           </div>
 
           {/* System Status */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">{t("dashboard.systemStatus")}</h2>
-            <div className="space-y-4">
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <h2 className="text-lg font-semibold text-white">{t("dashboard.systemStatus")}</h2>
+            </div>
+            <div className="space-y-3">
               {analyticsKPIs.slice(0, 6).map((kpi) => (
-                <div key={kpi.id} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">{kpi.label}</span>
+                <div key={kpi.id} className="flex items-center justify-between py-1.5 group">
+                  <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">{kpi.label}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm font-semibold text-white tabular-nums">
                       {kpi.value}{kpi.unit}
                     </span>
-                    <span className={`text-xs ${kpi.trendPercent > 0 ? (kpi.id === "active-incidents" || kpi.id === "avg-severity" || kpi.id === "affected-regions" ? "text-red-400" : "text-emerald-400") : "text-emerald-400"}`}>
+                    <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-md ${kpi.trendPercent > 0 ? (kpi.id === "active-incidents" || kpi.id === "avg-severity" || kpi.id === "affected-regions" ? "text-red-400 bg-red-500/10" : "text-emerald-400 bg-emerald-500/10") : "text-emerald-400 bg-emerald-500/10"}`}>
                       {kpi.trendPercent > 0 ? "+" : ""}{kpi.trendPercent}%
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-700">
+            <div className="mt-5 pt-4 border-t border-white/[0.06]">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{t("dashboard.lastRefresh")}</span>
-                <span className="text-emerald-400">{autoRefresh.lastRefresh.toLocaleTimeString()}</span>
+                <span className="text-gray-500">{t("dashboard.lastRefresh")}</span>
+                <span className="text-emerald-400 font-medium tabular-nums">{autoRefresh.lastRefresh.toLocaleTimeString()}</span>
               </div>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-emerald-500/[0.06] border border-emerald-500/10 rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs text-emerald-400">{t("dashboard.allSystemsOperational")}</span>
+                <span className="text-xs text-emerald-400 font-medium">{t("dashboard.allSystemsOperational")}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Active Alerts Section */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-white">{t("dashboard.activeAlerts")}</h2>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs font-semibold rounded-full">
+                <span className="px-2.5 py-0.5 bg-red-500/10 text-red-400 text-[11px] font-semibold rounded-lg border border-red-500/20">
                   {unreadCount} {t("common.unread")}
                 </span>
               )}
               {criticalCount > 0 && (
-                <span className="px-2 py-0.5 bg-red-600/30 text-red-300 text-xs font-semibold rounded-full animate-pulse">
+                <span className="px-2.5 py-0.5 bg-red-500/15 text-red-300 text-[11px] font-semibold rounded-lg border border-red-500/20 animate-pulse">
                   {criticalCount} {t("risk.critical")}
                 </span>
               )}
@@ -393,7 +418,7 @@ export default function DashboardPage() {
               <select
                 value={filterSeverity}
                 onChange={(e) => setFilterSeverity(e.target.value as AlertSeverity | "all")}
-                className="bg-gray-800 border border-gray-600 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
+                className="bg-white/[0.04] border border-white/[0.08] text-gray-300 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all"
               >
                 <option value="all">{t("dashboard.allSeverity")}</option>
                 <option value="critical">{t("risk.critical")}</option>
@@ -404,7 +429,7 @@ export default function DashboardPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value as AlertCategory | "all")}
-                className="bg-gray-800 border border-gray-600 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
+                className="bg-white/[0.04] border border-white/[0.08] text-gray-300 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all"
               >
                 <option value="all">{t("dashboard.allCategories")}</option>
                 {alertCategories.map((cat) => (
@@ -417,65 +442,68 @@ export default function DashboardPage() {
           {/* Alert List */}
           <div className="space-y-2">
             {alerts.length === 0 ? (
-              <div className="text-center py-12">
-                <svg className="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-gray-400 text-sm">{t("dashboard.noAlertsMatch")}</p>
+              <div className="text-center py-16">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                  <svg className="w-7 h-7 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm font-medium">{t("dashboard.noAlertsMatch")}</p>
               </div>
             ) : (
-              alerts.map((alert) => {
+              alerts.map((alert, index) => {
                 const sev = severityConfig[alert.severity];
                 const cat = alertCategories.find((c) => c.value === alert.category);
                 return (
                   <button
                     key={alert.id}
                     onClick={() => openAlert(alert)}
-                    className={`w-full text-left p-4 rounded-xl border transition-all hover:bg-gray-800/50 ${
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-200 hover:-translate-y-px animate-slide-up ${
                       alert.status === "unread"
-                        ? "bg-gray-800/30 border-gray-600"
-                        : "bg-transparent border-gray-800"
+                        ? "bg-blue-500/[0.03] border-white/[0.08] hover:bg-blue-500/[0.06]"
+                        : "bg-transparent border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.08]"
                     }`}
+                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
                   >
                     <div className="flex items-start gap-4">
                       {/* Severity indicator */}
-                      <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
-                        alert.severity === "critical" ? "bg-red-500 animate-pulse" :
-                        alert.severity === "high" ? "bg-orange-500" :
-                        alert.severity === "medium" ? "bg-amber-500" : "bg-emerald-500"
+                      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ring-4 ${
+                        alert.severity === "critical" ? "bg-red-500 ring-red-500/20 animate-pulse" :
+                        alert.severity === "high" ? "bg-orange-500 ring-orange-500/10" :
+                        alert.severity === "medium" ? "bg-amber-500 ring-amber-500/10" : "bg-emerald-500 ring-emerald-500/10"
                       }`} />
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sev.bg} ${sev.color}`}>
+                          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${sev.bg} ${sev.color}`}>
                             {sev.label}
                           </span>
-                          <span className="text-[10px] text-gray-500 px-1.5 py-0.5 bg-gray-800 rounded">
+                          <span className="text-[10px] text-gray-500 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.06] rounded-md">
                             {cat?.label}
                           </span>
                           {alert.status === "unread" && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-400/30" />
                           )}
                         </div>
                         <p className="text-sm text-white truncate font-medium">{alert.title}</p>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <span className="text-xs text-gray-500">{alert.source}</span>
-                          <span className="text-xs text-gray-600">|</span>
-                          <span className="text-xs text-gray-500">{alert.region}</span>
-                          <span className="text-xs text-gray-600">|</span>
-                          <span className="text-xs text-gray-500">{getTimeAgo(alert.timestamp)}</span>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-[11px] text-gray-500">{alert.source}</span>
+                          <span className="w-1 h-1 rounded-full bg-gray-700" />
+                          <span className="text-[11px] text-gray-500">{alert.region}</span>
+                          <span className="w-1 h-1 rounded-full bg-gray-700" />
+                          <span className="text-[11px] text-gray-500">{getTimeAgo(alert.timestamp)}</span>
                         </div>
                       </div>
 
                       {/* Impact score */}
                       <div className="text-right shrink-0">
-                        <div className={`text-lg font-bold ${
+                        <div className={`text-lg font-bold tabular-nums ${
                           alert.estimatedImpactScore >= 80 ? "text-red-400" :
                           alert.estimatedImpactScore >= 60 ? "text-amber-400" : "text-emerald-400"
                         }`}>
                           {alert.estimatedImpactScore}
                         </div>
-                        <span className="text-[10px] text-gray-500">{t("simulations.impact")}</span>
+                        <span className="text-[10px] text-gray-600 font-medium">{t("simulations.impact")}</span>
                       </div>
                     </div>
                   </button>

@@ -3,30 +3,36 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/utils";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "gradient" | "outline";
+type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
+  glow?: boolean;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border-transparent",
+    "bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 border-blue-500/20 shadow-lg shadow-blue-500/10",
   secondary:
-    "bg-gray-700 text-gray-100 hover:bg-gray-600 focus:ring-gray-500 border-gray-600",
+    "bg-gray-800 text-gray-100 hover:bg-gray-700 active:bg-gray-800 border-white/[0.08] shadow-inner-highlight",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border-transparent",
+    "bg-red-600 text-white hover:bg-red-500 active:bg-red-700 border-red-500/20 shadow-lg shadow-red-500/10",
   ghost:
-    "bg-transparent text-gray-300 hover:bg-gray-800 focus:ring-gray-500 border-transparent",
+    "bg-transparent text-gray-300 hover:bg-white/[0.06] hover:text-white active:bg-white/[0.1] border-transparent",
+  gradient:
+    "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-500 hover:to-cyan-500 border-white/[0.1] shadow-lg shadow-blue-500/20",
+  outline:
+    "bg-transparent text-blue-400 hover:bg-blue-500/10 active:bg-blue-500/15 border-blue-500/30 hover:border-blue-400/50",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-base",
+  xs: "px-2.5 py-1 text-xs gap-1",
+  sm: "px-3 py-1.5 text-sm gap-1.5",
+  md: "px-4 py-2 text-sm gap-2",
+  lg: "px-6 py-3 text-base gap-2",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -36,6 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       isLoading = false,
+      glow = false,
       disabled,
       children,
       ...props
@@ -47,19 +54,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center font-medium rounded-lg border",
-          "transition-colors duration-200",
-          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center font-medium rounded-xl border",
+          "transition-all duration-200 ease-out",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-1 focus:ring-offset-gray-900",
+          "disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none",
           variantStyles[variant],
           sizeStyles[size],
+          glow && variant === "primary" && "animate-glow-pulse",
           className
         )}
         {...props}
       >
         {isLoading && (
           <svg
-            className="animate-spin -ml-1 mr-2 h-4 w-4"
+            className="animate-spin -ml-0.5 h-4 w-4"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
