@@ -1,0 +1,196 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external"])
+
+"""Time range presets for dashboard queries"""
+enum DashboardTimeRange {
+  LAST_HOUR
+  LAST_24H
+  LAST_7D
+  LAST_30D
+  LAST_90D
+  LAST_YEAR
+  CUSTOM
+}
+
+"""Unified dashboard overview combining all services"""
+type DashboardOverview {
+  """Timestamp when this snapshot was generated"""
+  generatedAt: String!
+
+  """Risk module summary"""
+  risk: RiskSummary!
+
+  """Sanctions screening summary"""
+  sanctions: SanctionsSummary!
+
+  """Intelligence module summary"""
+  intelligence: IntelligenceSummary!
+
+  """System-wide health indicators"""
+  systemHealth: SystemHealth!
+
+  """Activity feed of recent events across all modules"""
+  activityFeed: [ActivityEvent!]!
+}
+
+"""Risk module summary for dashboard"""
+type RiskSummary {
+  totalMonitoredEntities: Int!
+  criticalCount: Int!
+  highCount: Int!
+  mediumCount: Int!
+  lowCount: Int!
+  averageScore: Float!
+  scoreChange24h: Float!
+  unresolvedAlerts: Int!
+  topRiskEntities: [RiskEntitySummary!]!
+}
+
+"""Compact risk entity for dashboard display"""
+type RiskEntitySummary {
+  entityId: String!
+  entityName: String!
+  entityType: String!
+  riskScore: Float!
+  severity: String!
+  trend: String!
+}
+
+"""Sanctions module summary for dashboard"""
+type SanctionsSummary {
+  totalScreenings24h: Int!
+  pendingReviews: Int!
+  matchesFound: Int!
+  falsePositiveRate: Float!
+  escalatedCases: Int!
+  listsLastUpdated: String!
+  countriesMonitored: Int!
+  recentMatches: [ScreeningMatchSummary!]!
+}
+
+"""Compact screening match for dashboard display"""
+type ScreeningMatchSummary {
+  screeningId: String!
+  entityName: String!
+  matchConfidence: String!
+  listName: String!
+  screenedAt: String!
+}
+
+"""Intelligence module summary for dashboard"""
+type IntelligenceSummary {
+  totalEntitiesTracked: Int!
+  activeSignals: Int!
+  newSignals24h: Int!
+  communitiesDetected: Int!
+  pendingBriefings: Int!
+  signalsByCategory: [SignalCategorySummary!]!
+  recentBriefings: [BriefingSummary!]!
+}
+
+"""Signal count by category"""
+type SignalCategorySummary {
+  category: String!
+  count: Int!
+  trend: String!
+}
+
+"""Compact briefing for dashboard display"""
+type BriefingSummary {
+  id: String!
+  title: String!
+  classification: String!
+  generatedAt: String!
+  entityCount: Int!
+}
+
+"""System-wide health metrics"""
+type SystemHealth {
+  overallStatus: String!
+  services: [ServiceHealth!]!
+  uptime: Float!
+  requestsPerMinute: Float!
+  averageLatencyMs: Float!
+  errorRate: Float!
+}
+
+"""Individual service health"""
+type ServiceHealth {
+  name: String!
+  status: String!
+  latencyMs: Float!
+  errorRate: Float!
+  lastHealthCheck: String!
+  version: String
+}
+
+"""Activity event for the unified feed"""
+type ActivityEvent {
+  id: ID!
+  type: String!
+  module: String!
+  title: String!
+  description: String!
+  severity: String!
+  timestamp: String!
+  entityId: String
+  entityName: String
+  userId: String
+  metadata: [ActivityMeta!]!
+}
+
+"""Key-value metadata on an activity event"""
+type ActivityMeta {
+  key: String!
+  value: String!
+}
+
+"""Custom time range input"""
+input CustomTimeRange {
+  from: String!
+  to: String!
+}
+
+"""Dashboard query input"""
+input DashboardInput {
+  tenantId: String!
+  timeRange: DashboardTimeRange!
+  customRange: CustomTimeRange
+  includeRisk: Boolean = true
+  includeSanctions: Boolean = true
+  includeIntelligence: Boolean = true
+  activityLimit: Int = 20
+}
+
+"""Widget-level data for configurable dashboards"""
+type WidgetData {
+  widgetId: String!
+  widgetType: String!
+  title: String!
+  data: String!
+  updatedAt: String!
+}
+
+type Query {
+  """Get the unified dashboard overview"""
+  dashboardOverview(input: DashboardInput!): DashboardOverview!
+
+  """Get data for a specific dashboard widget"""
+  dashboardWidget(
+    widgetId: String!
+    tenantId: String!
+    timeRange: DashboardTimeRange!
+    customRange: CustomTimeRange
+  ): WidgetData
+
+  """Get system health status"""
+  systemHealth: SystemHealth!
+
+  """Get recent activity across all modules"""
+  activityFeed(
+    tenantId: String!
+    module: String
+    limit: Int = 50
+    offset: Int = 0
+  ): [ActivityEvent!]!
+}

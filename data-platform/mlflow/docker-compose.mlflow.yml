@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  mlflow:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_DB_PASSWORD: ${MLFLOW_DB_PASSWORD:-mlflow}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+    depends_on:
+      - mlflow-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mlflow-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mlflow
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: ${MLFLOW_DB_PASSWORD:-mlflow}
+    volumes:
+      - mlflow_db:/var/lib/postgresql/data
+
+volumes:
+  mlflow_db:

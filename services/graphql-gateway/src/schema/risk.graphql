@@ -1,0 +1,188 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external"])
+
+"""Risk severity levels for classification"""
+enum RiskSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  NEGLIGIBLE
+}
+
+"""Trend direction for risk metrics"""
+enum TrendDirection {
+  INCREASING
+  STABLE
+  DECREASING
+}
+
+"""Time granularity for trend data"""
+enum TimeGranularity {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+"""Multi-dimensional risk breakdown"""
+type RiskDimensions {
+  operational: Float!
+  financial: Float!
+  reputational: Float!
+  geopolitical: Float!
+  compliance: Float!
+}
+
+"""Core risk assessment for an entity"""
+type RiskAssessment @key(fields: "id") {
+  id: ID!
+  entityId: String!
+  entityType: String!
+  overallScore: Float!
+  severity: RiskSeverity!
+  dimensions: RiskDimensions!
+  confidence: Float!
+  assessedAt: String!
+  nextReviewAt: String
+  assessedBy: String!
+  methodology: String!
+  factors: [RiskFactor!]!
+  mitigations: [RiskMitigation!]!
+}
+
+"""Individual contributing risk factor"""
+type RiskFactor {
+  name: String!
+  category: String!
+  weight: Float!
+  score: Float!
+  description: String!
+  source: String!
+  lastUpdated: String!
+}
+
+"""Applied or recommended risk mitigation"""
+type RiskMitigation {
+  id: ID!
+  name: String!
+  status: String!
+  effectiveness: Float!
+  appliedAt: String
+  description: String!
+}
+
+"""Real-time risk alert"""
+type RiskAlert @key(fields: "id") {
+  id: ID!
+  entityId: String!
+  severity: RiskSeverity!
+  title: String!
+  description: String!
+  category: String!
+  source: String!
+  triggeredAt: String!
+  acknowledgedAt: String
+  resolvedAt: String
+  assignedTo: String
+  relatedAssessmentId: String
+}
+
+"""Temporal risk trend data point"""
+type RiskTrendPoint {
+  timestamp: String!
+  overallScore: Float!
+  dimensions: RiskDimensions!
+}
+
+"""Risk trend over a time period"""
+type RiskTrend {
+  entityId: String!
+  direction: TrendDirection!
+  changePercent: Float!
+  period: String!
+  dataPoints: [RiskTrendPoint!]!
+}
+
+"""Aggregated risk dashboard data"""
+type RiskDashboard {
+  totalEntitiesMonitored: Int!
+  criticalAlerts: Int!
+  highRiskEntities: Int!
+  averageRiskScore: Float!
+  riskDistribution: RiskDistribution!
+  recentAlerts: [RiskAlert!]!
+  topRisks: [RiskAssessment!]!
+  trends: [RiskTrend!]!
+}
+
+"""Distribution of entities across risk levels"""
+type RiskDistribution {
+  critical: Int!
+  high: Int!
+  medium: Int!
+  low: Int!
+  negligible: Int!
+}
+
+input RiskAssessmentFilter {
+  entityId: String
+  entityType: String
+  minScore: Float
+  maxScore: Float
+  severity: RiskSeverity
+  assessedAfter: String
+  assessedBefore: String
+}
+
+input RiskAlertFilter {
+  entityId: String
+  severity: RiskSeverity
+  category: String
+  acknowledged: Boolean
+  resolved: Boolean
+}
+
+input RiskTrendInput {
+  entityId: String!
+  granularity: TimeGranularity!
+  from: String!
+  to: String!
+}
+
+type Query {
+  """Retrieve a specific risk assessment by ID"""
+  riskAssessment(id: ID!): RiskAssessment
+
+  """List risk assessments with filtering"""
+  riskAssessments(
+    filter: RiskAssessmentFilter
+    limit: Int = 25
+    offset: Int = 0
+  ): [RiskAssessment!]!
+
+  """Get active risk alerts"""
+  riskAlerts(
+    filter: RiskAlertFilter
+    limit: Int = 50
+    offset: Int = 0
+  ): [RiskAlert!]!
+
+  """Get risk trend data for an entity"""
+  riskTrend(input: RiskTrendInput!): RiskTrend
+
+  """Get the aggregated risk dashboard"""
+  riskDashboard(tenantId: String!): RiskDashboard!
+}
+
+type Mutation {
+  """Trigger a new risk assessment for an entity"""
+  triggerRiskAssessment(entityId: String!, entityType: String!): RiskAssessment!
+
+  """Acknowledge a risk alert"""
+  acknowledgeRiskAlert(alertId: ID!, note: String): RiskAlert!
+
+  """Resolve a risk alert"""
+  resolveRiskAlert(alertId: ID!, resolution: String!): RiskAlert!
+}

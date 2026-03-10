@@ -1,0 +1,97 @@
+# ATLAS Core API - Development overrides
+
+global:
+  environment: development
+  imagePullPolicy: Always
+
+apiGateway:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+graphqlGateway:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+iam:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb: null
+
+riskAssessment:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb: null
+
+sanctionsScreening:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb: null
+
+graphIntelligence:
+  replicaCount: 1
+
+newsAggregator:
+  replicaCount: 1
+
+modelServing:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+auditLogging:
+  replicaCount: 1
+
+frontend:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+ingress:
+  enabled: true
+  host: dev.atlas-core.local
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  tls:
+    secretName: atlas-tls-dev
+
+vault:
+  enabled: false
+
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+  falco:
+    enabled: false
+
+# Use Bitnami subcharts for local dev
+postgresql:
+  enabled: true
+  auth:
+    username: atlas
+    password: atlas-dev
+    database: atlas
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+
+kafka:
+  enabled: true
+  listeners:
+    client:
+      protocol: PLAINTEXT

@@ -1,0 +1,35 @@
+====================================================================
+  ATLAS Core API - Trade Intelligence & Risk Assessment Platform
+====================================================================
+
+Congratulations! ATLAS Core API has been deployed.
+
+Environment: {{ .Values.global.environment }}
+
+Services deployed:
+  - API Gateway:        {{ .Values.namespaces.gateway }}/api-gateway
+  - GraphQL Gateway:    {{ .Values.namespaces.gateway }}/graphql-gateway
+  - Frontend:           {{ .Values.namespaces.gateway }}/frontend
+  - IAM:                {{ .Values.namespaces.core }}/iam-service
+  - Sanctions:          {{ .Values.namespaces.core }}/sanctions-screening
+  - Audit:              {{ .Values.namespaces.core }}/audit-logging
+  - Risk Assessment:    {{ .Values.namespaces.intel }}/risk-assessment
+  - Graph Intelligence: {{ .Values.namespaces.intel }}/graph-intelligence
+  - News Aggregator:    {{ .Values.namespaces.intel }}/news-aggregator
+  - Model Serving:      {{ .Values.namespaces.ml }}/model-serving
+
+{{- if .Values.ingress.enabled }}
+
+Access the platform:
+  API:     https://{{ .Values.ingress.host }}/api
+  GraphQL: https://{{ .Values.ingress.host }}/graphql
+  UI:      https://{{ .Values.ingress.host }}/
+{{- end }}
+
+Quick health check:
+  kubectl get pods -n {{ .Values.namespaces.gateway }}
+  kubectl get pods -n {{ .Values.namespaces.core }}
+  kubectl get pods -n {{ .Values.namespaces.intel }}
+  kubectl get pods -n {{ .Values.namespaces.ml }}
+
+====================================================================

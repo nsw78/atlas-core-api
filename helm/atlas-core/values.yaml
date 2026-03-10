@@ -1,0 +1,327 @@
+# =============================================================================
+# ATLAS Core API - Helm Chart Values
+# =============================================================================
+
+global:
+  registry: ghcr.io
+  imagePrefix: atlas-core/atlas-core-api
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+  environment: production
+
+# ---------------------------------------------------------------------------
+# Namespace configuration
+# ---------------------------------------------------------------------------
+namespaces:
+  gateway: atlas-gateway
+  core: atlas-core
+  intel: atlas-intel
+  ml: atlas-ml
+  data: atlas-data
+  infra: atlas-infra
+  monitoring: atlas-monitoring
+
+# ---------------------------------------------------------------------------
+# Istio
+# ---------------------------------------------------------------------------
+istio:
+  enabled: true
+  mtls: STRICT
+
+# ---------------------------------------------------------------------------
+# API Gateway
+# ---------------------------------------------------------------------------
+apiGateway:
+  replicaCount: 3
+  image:
+    repository: api-gateway
+    tag: ""  # defaults to global.imageTag
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    minAvailable: 2
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    LOG_LEVEL: info
+    RATE_LIMIT_RPS: "1000"
+
+# ---------------------------------------------------------------------------
+# GraphQL Gateway
+# ---------------------------------------------------------------------------
+graphqlGateway:
+  replicaCount: 2
+  image:
+    repository: graphql-gateway
+    tag: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  service:
+    port: 4000
+
+# ---------------------------------------------------------------------------
+# IAM Service
+# ---------------------------------------------------------------------------
+iam:
+  replicaCount: 3
+  image:
+    repository: iam
+    tag: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  pdb:
+    minAvailable: 2
+  service:
+    port: 8081
+
+# ---------------------------------------------------------------------------
+# Risk Assessment
+# ---------------------------------------------------------------------------
+riskAssessment:
+  replicaCount: 3
+  image:
+    repository: risk-assessment
+    tag: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilization: 65
+  pdb:
+    minAvailable: 2
+  service:
+    port: 8082
+
+# ---------------------------------------------------------------------------
+# Sanctions Screening
+# ---------------------------------------------------------------------------
+sanctionsScreening:
+  replicaCount: 3
+  image:
+    repository: sanctions-screening
+    tag: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilization: 60
+  pdb:
+    minAvailable: 2
+  service:
+    port: 8083
+
+# ---------------------------------------------------------------------------
+# Graph Intelligence
+# ---------------------------------------------------------------------------
+graphIntelligence:
+  replicaCount: 2
+  image:
+    repository: graph-intelligence
+    tag: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+  service:
+    port: 8084
+
+# ---------------------------------------------------------------------------
+# News Aggregator
+# ---------------------------------------------------------------------------
+newsAggregator:
+  replicaCount: 2
+  image:
+    repository: news-aggregator
+    tag: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  service:
+    port: 8085
+
+# ---------------------------------------------------------------------------
+# Model Serving
+# ---------------------------------------------------------------------------
+modelServing:
+  replicaCount: 3
+  image:
+    repository: model-serving
+    tag: ""
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 60
+  service:
+    port: 8090
+
+# ---------------------------------------------------------------------------
+# Audit Logging
+# ---------------------------------------------------------------------------
+auditLogging:
+  replicaCount: 2
+  image:
+    repository: audit-logging
+    tag: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  service:
+    port: 8086
+
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
+frontend:
+  replicaCount: 2
+  image:
+    repository: frontend
+    tag: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+  service:
+    port: 3000
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  host: api.atlas-core.io
+  tls:
+    secretName: atlas-tls
+
+# ---------------------------------------------------------------------------
+# Vault
+# ---------------------------------------------------------------------------
+vault:
+  enabled: true
+  address: http://vault.atlas-infra.svc:8200
+  authPath: auth/approle
+  secretPath: atlas
+
+# ---------------------------------------------------------------------------
+# Monitoring
+# ---------------------------------------------------------------------------
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+  falco:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# External dependencies (Bitnami subcharts)
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: false  # Use external Aurora in production
+
+redis:
+  enabled: false  # Use external ElastiCache in production
+
+kafka:
+  enabled: false  # Use external MSK in production
+
+# ---------------------------------------------------------------------------
+# External endpoints (when subcharts are disabled)
+# ---------------------------------------------------------------------------
+externalPostgresql:
+  host: ""
+  port: 5432
+  database: atlas
+  existingSecret: atlas-db-credentials
+
+externalRedis:
+  host: ""
+  port: 6379
+  existingSecret: atlas-redis-credentials
+
+externalKafka:
+  brokers: ""
+  existingSecret: atlas-kafka-credentials

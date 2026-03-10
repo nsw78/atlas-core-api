@@ -1,0 +1,292 @@
+groups:
+  # =============================================================
+  # IAM Service Alerts
+  # =============================================================
+  - name: iam_service_alerts
+    rules:
+      - alert: IAMAuthFailures
+        expr: |
+          sum(rate(auth_failures_total{job="iam-service"}[1m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: iam-service
+          team: security
+        annotations:
+          summary: "IAM authentication failures exceed 10/min"
+          description: >-
+            Authentication failures are occurring at {{ $value | humanize }}/min.
+            This may indicate a brute-force attack, credential stuffing, or
+            a misconfigured client. Check source IPs and affected accounts.
+          runbook_url: "https://wiki.internal/runbooks/iam/auth-failures"
+
+      - alert: IAMTokenIssuanceLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(token_issuance_duration_seconds_bucket{job="iam-service"}[5m])) by (le))
+          > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: iam-service
+          team: security
+        annotations:
+          summary: "IAM token issuance p95 latency exceeds 500ms"
+          description: >-
+            Token issuance p95 latency is {{ $value | humanizeDuration }}.
+            This impacts user login experience. Check database connection pool
+            and JWT signing performance.
+          runbook_url: "https://wiki.internal/runbooks/iam/token-latency"
+
+      - alert: IAMActiveSessionsHigh
+        expr: |
+          iam_active_sessions_total{job="iam-service"} > 50000
+        for: 10m
+        labels:
+          severity: warning
+          service: iam-service
+          team: security
+        annotations:
+          summary: "IAM active sessions exceed 50,000"
+          description: >-
+            There are {{ $value | humanize }} active sessions. Verify this is
+            expected growth and not a session leak. Monitor Redis memory usage.
+
+  # =============================================================
+  # Risk Assessment Service Alerts
+  # =============================================================
+  - name: risk_assessment_alerts
+    rules:
+      - alert: RiskAssessmentSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(risk_assessment_duration_seconds_bucket{job="risk-assessment"}[5m])) by (le))
+          > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment
+          team: analytics
+        annotations:
+          summary: "Risk assessment p95 latency exceeds 5 seconds"
+          description: >-
+            Risk assessment computations are taking {{ $value | humanizeDuration }}
+            at p95. This may indicate increased data volume, model complexity,
+            or infrastructure resource constraints.
+          runbook_url: "https://wiki.internal/runbooks/risk-assessment/slow-assessment"
+
+      - alert: RiskModelStaleness
+        expr: |
+          (time() - risk_model_last_updated_timestamp_seconds{job="risk-assessment"}) > 86400
+        for: 10m
+        labels:
+          severity: warning
+          service: risk-assessment
+          team: analytics
+        annotations:
+          summary: "Risk model has not been updated in over 24 hours"
+          description: >-
+            The risk model {{ $labels.model_name }} was last updated
+            {{ $value | humanizeDuration }} ago. Verify the retraining
+            pipeline is functioning correctly.
+
+      - alert: RiskScoreAnomalies
+        expr: |
+          abs(
+            avg_over_time(risk_score_average{job="risk-assessment"}[1h])
+            - avg_over_time(risk_score_average{job="risk-assessment"}[24h])
+          ) > 0.3
+        for: 15m
+        labels:
+          severity: warning
+          service: risk-assessment
+          team: analytics
+        annotations:
+          summary: "Anomalous shift in average risk scores detected"
+          description: >-
+            The average risk score has shifted significantly from the 24-hour
+            baseline. This may indicate data drift, model degradation, or
+            a change in input distribution.
+
+  # =============================================================
+  # Kafka Consumer Alerts
+  # =============================================================
+  - name: kafka_consumer_alerts
+    rules:
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumer_group_lag{} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.consumer_group }}"
+          team: platform
+        annotations:
+          summary: "Kafka consumer lag exceeds 1000 for {{ $labels.consumer_group }}"
+          description: >-
+            Consumer group {{ $labels.consumer_group }} on topic
+            {{ $labels.topic }} has a lag of {{ $value | humanize }} messages.
+            This indicates the consumer cannot keep up with the producer rate.
+            Consider scaling consumers or investigating processing bottlenecks.
+          runbook_url: "https://wiki.internal/runbooks/kafka/consumer-lag"
+
+      - alert: KafkaConsumerLagCritical
+        expr: |
+          kafka_consumer_group_lag{} > 10000
+        for: 10m
+        labels:
+          severity: critical
+          service: "{{ $labels.consumer_group }}"
+          team: platform
+        annotations:
+          summary: "Critical Kafka consumer lag for {{ $labels.consumer_group }}"
+          description: >-
+            Consumer group {{ $labels.consumer_group }} on topic
+            {{ $labels.topic }} has a lag of {{ $value | humanize }} messages.
+            Data processing is severely delayed. Immediate action required.
+          runbook_url: "https://wiki.internal/runbooks/kafka/consumer-lag-critical"
+
+  # =============================================================
+  # Database Connection Alerts
+  # =============================================================
+  - name: database_alerts
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          (
+            db_pool_active_connections{} / db_pool_max_connections{}
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          team: platform
+        annotations:
+          summary: "Database connection pool >90% utilized for {{ $labels.job }}"
+          description: >-
+            Service {{ $labels.job }} is using {{ $value | humanizePercentage }}
+            of its database connection pool ({{ $labels.db_pool_active_connections }}
+            of {{ $labels.db_pool_max_connections }} connections). New requests
+            may block or fail. Consider increasing pool size or investigating
+            long-running queries.
+          runbook_url: "https://wiki.internal/runbooks/database/connection-pool"
+
+      - alert: DatabaseSlowQueries
+        expr: |
+          rate(db_slow_queries_total{}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          team: platform
+        annotations:
+          summary: "High rate of slow database queries for {{ $labels.job }}"
+          description: >-
+            Service {{ $labels.job }} is executing {{ $value | humanize }}
+            slow queries/sec. Check query plans and database load.
+
+  # =============================================================
+  # Redis Alerts
+  # =============================================================
+  - name: redis_service_alerts
+    rules:
+      - alert: RedisHighMemory
+        expr: |
+          (redis_memory_used_bytes{job="redis"} / redis_memory_max_bytes{job="redis"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis memory usage exceeds 85%"
+          description: >-
+            Redis is using {{ $value | humanizePercentage }} of its configured
+            max memory ({{ $labels.redis_memory_max_bytes | humanize1024 }}).
+            Evictions will increase and may impact cache hit rates. Consider
+            scaling Redis or reviewing key TTL policies.
+          runbook_url: "https://wiki.internal/runbooks/redis/high-memory"
+
+      - alert: RedisHighLatency
+        expr: |
+          redis_command_duration_seconds{quantile="0.99"} > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis p99 command latency exceeds 10ms"
+          description: >-
+            Redis p99 latency is {{ $value | humanizeDuration }}. This may
+            impact all services relying on Redis for caching and session storage.
+
+  # =============================================================
+  # Sanctions Screening Alerts
+  # =============================================================
+  - name: sanctions_screening_alerts
+    rules:
+      - alert: SanctionsListSyncFailure
+        expr: |
+          (time() - sanctions_list_last_sync_timestamp_seconds{job="sanctions-screening"}) > 43200
+        for: 10m
+        labels:
+          severity: critical
+          service: sanctions-screening
+          team: compliance
+        annotations:
+          summary: "Sanctions list sync overdue (>12 hours)"
+          description: >-
+            The sanctions list has not been synced for
+            {{ $value | humanizeDuration }}. Regulatory compliance requires
+            up-to-date lists. Check sync job and external API connectivity.
+          runbook_url: "https://wiki.internal/runbooks/sanctions/sync-failure"
+
+      - alert: SanctionsScreeningHighFalsePositiveRate
+        expr: |
+          (
+            sum(rate(sanctions_false_positives_total{job="sanctions-screening"}[1h]))
+            /
+            sum(rate(sanctions_matches_total{job="sanctions-screening"}[1h]))
+          ) > 0.80
+        for: 30m
+        labels:
+          severity: warning
+          service: sanctions-screening
+          team: compliance
+        annotations:
+          summary: "Sanctions screening false positive rate exceeds 80%"
+          description: >-
+            The false positive rate is {{ $value | humanizePercentage }}.
+            Review matching thresholds and fuzzy matching parameters.
+
+  # =============================================================
+  # Ingestion & Normalization Alerts
+  # =============================================================
+  - name: data_pipeline_alerts
+    rules:
+      - alert: IngestionDroppedRecords
+        expr: |
+          rate(ingestion_dropped_records_total{job="ingestion-service"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: ingestion-service
+          team: data-engineering
+        annotations:
+          summary: "Ingestion service is dropping records"
+          description: >-
+            The ingestion service is dropping {{ $value | humanize }} records/sec.
+            Check input data format validation and Kafka producer health.
+
+      - alert: NormalizationBacklog
+        expr: |
+          normalization_pending_records{job="normalization-service"} > 50000
+        for: 10m
+        labels:
+          severity: warning
+          service: normalization-service
+          team: data-engineering
+        annotations:
+          summary: "Normalization backlog exceeds 50,000 records"
+          description: >-
+            There are {{ $value | humanize }} records pending normalization.
+            Consider scaling the normalization service.

@@ -1,0 +1,215 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external"])
+
+"""Sanctions screening match confidence"""
+enum MatchConfidence {
+  EXACT
+  HIGH
+  MEDIUM
+  LOW
+  FALSE_POSITIVE
+}
+
+"""Screening status"""
+enum ScreeningStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ESCALATED
+  CLEARED
+}
+
+"""Type of sanctions list"""
+enum SanctionsListType {
+  UN
+  EU
+  OFAC
+  UK_HMT
+  FATF
+  NATIONAL
+  CUSTOM
+}
+
+"""Result of a sanctions screening"""
+type SanctionsScreenResult @key(fields: "id") {
+  id: ID!
+  entityId: String!
+  entityName: String!
+  entityType: String!
+  status: ScreeningStatus!
+  matchConfidence: MatchConfidence
+  matchedLists: [SanctionsListMatch!]!
+  riskScore: Float!
+  screenedAt: String!
+  reviewedAt: String
+  reviewedBy: String
+  notes: String
+  pep: Boolean!
+  adverseMedia: Boolean!
+}
+
+"""Match against a specific sanctions list"""
+type SanctionsListMatch {
+  listId: String!
+  listName: String!
+  listType: SanctionsListType!
+  matchedName: String!
+  matchScore: Float!
+  matchedFields: [String!]!
+  listingDate: String
+  delistingDate: String
+  reasons: [String!]!
+  sourceUrl: String
+}
+
+"""Sanctioned country information"""
+type SanctionedCountry @key(fields: "isoCode") {
+  isoCode: String!
+  name: String!
+  sanctionTypes: [String!]!
+  imposedBy: [String!]!
+  severity: String!
+  effectiveDate: String!
+  lastUpdated: String!
+  exemptions: [String!]!
+  tradeRestrictions: [TradeRestriction!]!
+}
+
+"""Trade restriction detail"""
+type TradeRestriction {
+  category: String!
+  description: String!
+  imposedBy: String!
+  effectiveDate: String!
+  exemptions: [String!]!
+}
+
+"""Available sanctions list metadata"""
+type SanctionsList @key(fields: "id") {
+  id: ID!
+  name: String!
+  type: SanctionsListType!
+  jurisdiction: String!
+  totalEntries: Int!
+  lastUpdated: String!
+  updateFrequency: String!
+  sourceUrl: String!
+  active: Boolean!
+}
+
+"""Trade intelligence report"""
+type TradeIntelligence @key(fields: "id") {
+  id: ID!
+  entityId: String!
+  tradeRoutes: [TradeRoute!]!
+  flaggedTransactions: [FlaggedTransaction!]!
+  complianceScore: Float!
+  lastAnalyzed: String!
+  recommendations: [String!]!
+}
+
+"""Trade route analysis"""
+type TradeRoute {
+  origin: String!
+  destination: String!
+  intermediaries: [String!]!
+  volume: Float!
+  currency: String!
+  riskLevel: String!
+  flagged: Boolean!
+  reason: String
+}
+
+"""Flagged transaction for review"""
+type FlaggedTransaction {
+  transactionId: String!
+  amount: Float!
+  currency: String!
+  counterparty: String!
+  country: String!
+  flagReason: String!
+  timestamp: String!
+  severity: String!
+}
+
+"""Batch screening result summary"""
+type BatchScreeningResult {
+  batchId: String!
+  totalScreened: Int!
+  matches: Int!
+  cleared: Int!
+  pending: Int!
+  startedAt: String!
+  completedAt: String
+  status: String!
+}
+
+input ScreeningInput {
+  entityName: String!
+  entityType: String!
+  country: String
+  dateOfBirth: String
+  nationalId: String
+  additionalInfo: String
+  lists: [SanctionsListType!]
+}
+
+input BatchScreeningInput {
+  entities: [ScreeningInput!]!
+  priority: String
+  callbackUrl: String
+}
+
+input SanctionsScreenFilter {
+  entityId: String
+  status: ScreeningStatus
+  matchConfidence: MatchConfidence
+  screenedAfter: String
+  screenedBefore: String
+  listType: SanctionsListType
+}
+
+type Query {
+  """Get a specific screening result"""
+  sanctionsScreenResult(id: ID!): SanctionsScreenResult
+
+  """List screening results with filters"""
+  sanctionsScreenResults(
+    filter: SanctionsScreenFilter
+    limit: Int = 25
+    offset: Int = 0
+  ): [SanctionsScreenResult!]!
+
+  """Get sanctioned countries"""
+  sanctionedCountries(imposedBy: String): [SanctionedCountry!]!
+
+  """Get a specific sanctioned country"""
+  sanctionedCountry(isoCode: String!): SanctionedCountry
+
+  """List available sanctions lists"""
+  sanctionsLists(type: SanctionsListType, active: Boolean): [SanctionsList!]!
+
+  """Get trade intelligence for an entity"""
+  tradeIntelligence(entityId: String!): TradeIntelligence
+
+  """Get batch screening status"""
+  batchScreeningStatus(batchId: String!): BatchScreeningResult
+}
+
+type Mutation {
+  """Screen an entity against sanctions lists"""
+  screenEntity(input: ScreeningInput!): SanctionsScreenResult!
+
+  """Submit a batch of entities for screening"""
+  submitBatchScreening(input: BatchScreeningInput!): BatchScreeningResult!
+
+  """Mark a screening result as reviewed"""
+  reviewScreeningResult(
+    id: ID!
+    decision: MatchConfidence!
+    notes: String!
+  ): SanctionsScreenResult!
+
+  """Escalate a screening result"""
+  escalateScreeningResult(id: ID!, reason: String!): SanctionsScreenResult!
+}

@@ -23,6 +23,9 @@ const sanctionedCountries = [
   { flag: "\u{1F1F8}\u{1F1F4}", name: "Somalia", program: "Somalia Sanctions", risk: "high", since: "2010-04-13" },
   { flag: "\u{1F1F8}\u{1F1E9}", name: "Sudan", program: "Sudan Sanctions", risk: "high", since: "1997-11-03" },
   { flag: "\u{1F1FE}\u{1F1EA}", name: "Yemen", program: "Yemen Sanctions", risk: "high", since: "2012-05-16" },
+  { flag: "\u{1F1F3}\u{1F1EE}", name: "Nicaragua", program: "Nicaragua Sanctions", risk: "high", since: "2018-11-27" },
+  { flag: "\u{1F1F7}\u{1F1F8}", name: "Serbia/Balkans", program: "Western Balkans Sanctions", risk: "medium", since: "2001-06-26" },
+  { flag: "\u{1F1F8}\u{1F1F8}", name: "South Sudan", program: "South Sudan Sanctions", risk: "high", since: "2014-04-03" },
 ];
 
 const dataSources = [

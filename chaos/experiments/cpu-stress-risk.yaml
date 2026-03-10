@@ -1,0 +1,37 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: risk-cpu-stress
+  namespace: atlas-intel
+spec:
+  appinfo:
+    appns: atlas-intel
+    applabel: app=risk-assessment
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: CPU_CORES
+              value: "2"
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+        probe:
+          - name: risk-hpa-scales
+            type: k8sProbe
+            k8sProbe/inputs:
+              group: autoscaling
+              version: v2
+              resource: horizontalpodautoscalers
+              namespace: atlas-intel
+              fieldSelector: metadata.name=risk-assessment-hpa
+              operation: present
+            mode: EOT
+            runProperties:
+              probeTimeout: 120
+              interval: 30
+              retry: 3

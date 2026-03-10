@@ -1,0 +1,129 @@
+groups:
+  - name: api_gateway_alerts
+    rules:
+      # -----------------------------------------------
+      # High Error Rate - 5xx responses exceed 5% of total traffic
+      # -----------------------------------------------
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="api-gateway", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="api-gateway"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway error rate exceeds 5%"
+          description: >-
+            The API Gateway is returning 5xx errors at a rate of
+            {{ $value | humanizePercentage }} over the last 5 minutes.
+            Investigate upstream service health and recent deployments.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/high-error-rate"
+          dashboard_url: "https://grafana.internal/d/api-gateway/api-gateway-overview"
+
+      # -----------------------------------------------
+      # High Latency - p99 response time exceeds 2 seconds
+      # -----------------------------------------------
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le))
+          > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway p99 latency exceeds 2 seconds"
+          description: >-
+            The API Gateway p99 response time is {{ $value | humanizeDuration }}.
+            This may indicate downstream service degradation, database slowness,
+            or resource contention. Check dependent service latencies.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/high-latency"
+          dashboard_url: "https://grafana.internal/d/api-gateway/api-gateway-overview"
+
+      # -----------------------------------------------
+      # Circuit Breaker Open - upstream dependency unavailable
+      # -----------------------------------------------
+      - alert: CircuitBreakerOpen
+        expr: |
+          circuit_breaker_state{job="api-gateway", state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.upstream }}"
+          description: >-
+            The circuit breaker for upstream service {{ $labels.upstream }}
+            has been in the OPEN state for more than 1 minute. Traffic to
+            this dependency is being rejected. Investigate the health of
+            {{ $labels.upstream }} immediately.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/circuit-breaker"
+
+      # -----------------------------------------------
+      # Rate Limit Exceeded - clients hitting rate limits
+      # -----------------------------------------------
+      - alert: RateLimitExceeded
+        expr: |
+          sum(rate(rate_limit_exceeded_total{job="api-gateway"}[5m])) by (client_id) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Rate limiting active for client {{ $labels.client_id }}"
+          description: >-
+            Client {{ $labels.client_id }} is being rate-limited at
+            {{ $value | humanize }} requests/sec. This may indicate a
+            misconfigured client, an attack, or the need to adjust
+            rate limit thresholds.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/rate-limiting"
+
+      # -----------------------------------------------
+      # High Memory Usage - container approaching memory limit
+      # -----------------------------------------------
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="api-gateway"}
+            /
+            container_memory_limit_bytes{container="api-gateway"}
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway memory usage exceeds 80%"
+          description: >-
+            The API Gateway container is using {{ $value | humanizePercentage }}
+            of its memory limit. If this continues, the container may be
+            OOM-killed. Consider scaling horizontally or investigating memory leaks.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/high-memory"
+
+      # -----------------------------------------------
+      # Pod Crash Looping - repeated restarts detected
+      # -----------------------------------------------
+      - alert: PodCrashLooping
+        expr: |
+          increase(kube_pod_container_status_restarts_total{container="api-gateway"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway pod crash looping"
+          description: >-
+            The API Gateway pod {{ $labels.pod }} has restarted
+            {{ $value | humanize }} times in the last hour. Check container
+            logs for panic traces, OOM events, or failed health checks.
+          runbook_url: "https://wiki.internal/runbooks/api-gateway/crash-loop"

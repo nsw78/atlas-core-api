@@ -47,4 +47,11 @@ const (
 
 	// Ingestion Topics
 	TopicIngestionCompleted = "atlas.ingestion.completed"
+
+	// Sanctions & Trade Intelligence Topics
+	TopicSanctionsScreened      = "atlas.sanctions.screened"
+	TopicSanctionsMatchFound    = "atlas.sanctions.match_found"
+	TopicSanctionsListSynced    = "atlas.sanctions.list_synced"
+	TopicTradeRestrictionFound  = "atlas.trade.restriction_found"
+	TopicTradeAdvisoryIssued    = "atlas.trade.advisory_issued"
 )

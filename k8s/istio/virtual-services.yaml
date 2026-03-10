@@ -1,0 +1,138 @@
+# ============================================================
+# ISTIO Virtual Services - Traffic management & canary
+# ============================================================
+
+# API Gateway - Canary deployment support
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway-vs
+  namespace: atlas-gateway
+spec:
+  hosts:
+    - api-gateway
+  http:
+    - route:
+        - destination:
+            host: api-gateway
+            subset: stable
+          weight: 95
+        - destination:
+            host: api-gateway
+            subset: canary
+          weight: 5
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: "5xx,reset,connect-failure,resource-exhausted"
+      fault:
+        abort:
+          percentage:
+            value: 0
+          httpStatus: 503
+---
+# Risk Assessment - With retries and timeout
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: risk-assessment-vs
+  namespace: atlas-intel
+spec:
+  hosts:
+    - risk-assessment
+  http:
+    - route:
+        - destination:
+            host: risk-assessment
+            subset: stable
+          weight: 100
+      timeout: 60s
+      retries:
+        attempts: 3
+        perTryTimeout: 20s
+        retryOn: "5xx,reset,connect-failure"
+---
+# Sanctions Screening - Critical service, strict retries
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: sanctions-screening-vs
+  namespace: atlas-core
+spec:
+  hosts:
+    - sanctions-screening
+  http:
+    - route:
+        - destination:
+            host: sanctions-screening
+            subset: stable
+          weight: 100
+      timeout: 45s
+      retries:
+        attempts: 2
+        perTryTimeout: 15s
+        retryOn: "5xx,reset,connect-failure"
+---
+# IAM Service - Auth critical path
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: iam-service-vs
+  namespace: atlas-core
+spec:
+  hosts:
+    - iam-service
+  http:
+    - route:
+        - destination:
+            host: iam-service
+            subset: stable
+          weight: 100
+      timeout: 10s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: "5xx,reset,connect-failure"
+---
+# Model Serving - Higher timeout for ML inference
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: model-serving-vs
+  namespace: atlas-ml
+spec:
+  hosts:
+    - model-serving
+  http:
+    - route:
+        - destination:
+            host: model-serving
+            subset: stable
+          weight: 100
+      timeout: 120s
+      retries:
+        attempts: 2
+        perTryTimeout: 60s
+        retryOn: "5xx,reset"
+---
+# NLP Service - Longer timeout for text processing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nlp-service-vs
+  namespace: atlas-intel
+spec:
+  hosts:
+    - nlp-service
+  http:
+    - route:
+        - destination:
+            host: nlp-service
+            subset: stable
+          weight: 100
+      timeout: 90s
+      retries:
+        attempts: 2
+        perTryTimeout: 45s
+        retryOn: "5xx,reset"

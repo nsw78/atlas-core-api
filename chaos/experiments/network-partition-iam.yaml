@@ -1,0 +1,38 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: iam-network-partition
+  namespace: atlas-core
+spec:
+  appinfo:
+    appns: atlas-core
+    applabel: app=iam-service
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-network-partition
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: NETWORK_INTERFACE
+              value: "eth0"
+            - name: DESTINATION_HOSTS
+              value: "postgres.atlas-infra"
+            - name: DESTINATION_IPS
+              value: ""
+        probe:
+          - name: iam-graceful-degradation
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://iam-service.atlas-core:8081/health
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 10
+              interval: 10
+              retry: 5

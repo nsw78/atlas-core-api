@@ -1,0 +1,261 @@
+{{/*
+IAM Service
+*/}}
+{{- $iam := .Values.iam -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam-service
+  namespace: {{ .Values.namespaces.core }}
+  labels:
+    {{- include "atlas-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: iam
+spec:
+  replicas: {{ $iam.replicaCount }}
+  selector:
+    matchLabels:
+      app: iam-service
+  template:
+    metadata:
+      labels:
+        app: iam-service
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: iam-service
+      containers:
+        - name: iam
+          image: {{ include "atlas-core.image" (dict "global" .Values.global "service" $iam) }}
+          ports:
+            - name: http
+              containerPort: {{ $iam.service.port }}
+            - name: metrics
+              containerPort: 9090
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment }}
+            - name: DATABASE_URL
+              value: {{ include "atlas-core.databaseUrl" . }}
+            - name: REDIS_URL
+              value: {{ include "atlas-core.redisUrl" . }}
+          resources:
+            {{- toYaml $iam.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iam-service
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  ports:
+    - port: {{ $iam.service.port }}
+      targetPort: http
+      name: http
+    - port: 9090
+      targetPort: metrics
+      name: metrics
+  selector:
+    app: iam-service
+---
+{{- if $iam.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: iam-service
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: iam-service
+  minReplicas: {{ $iam.autoscaling.minReplicas }}
+  maxReplicas: {{ $iam.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $iam.autoscaling.targetCPUUtilization }}
+{{- end }}
+---
+{{- if $iam.pdb }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: iam-service
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  minAvailable: {{ $iam.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: iam-service
+{{- end }}
+---
+{{/*
+Sanctions Screening
+*/}}
+{{- $sanctions := .Values.sanctionsScreening -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sanctions-screening
+  namespace: {{ .Values.namespaces.core }}
+  labels:
+    {{- include "atlas-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sanctions-screening
+spec:
+  replicas: {{ $sanctions.replicaCount }}
+  selector:
+    matchLabels:
+      app: sanctions-screening
+  template:
+    metadata:
+      labels:
+        app: sanctions-screening
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: sanctions-screening
+      containers:
+        - name: sanctions-screening
+          image: {{ include "atlas-core.image" (dict "global" .Values.global "service" $sanctions) }}
+          ports:
+            - name: http
+              containerPort: {{ $sanctions.service.port }}
+            - name: metrics
+              containerPort: 9090
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment }}
+            - name: DATABASE_URL
+              value: {{ include "atlas-core.databaseUrl" . }}
+            - name: KAFKA_BROKERS
+              value: {{ include "atlas-core.kafkaBrokers" . }}
+          resources:
+            {{- toYaml $sanctions.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sanctions-screening
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  ports:
+    - port: {{ $sanctions.service.port }}
+      targetPort: http
+      name: http
+    - port: 9090
+      targetPort: metrics
+      name: metrics
+  selector:
+    app: sanctions-screening
+---
+{{- if $sanctions.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sanctions-screening
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sanctions-screening
+  minReplicas: {{ $sanctions.autoscaling.minReplicas }}
+  maxReplicas: {{ $sanctions.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $sanctions.autoscaling.targetCPUUtilization }}
+{{- end }}
+---
+{{/*
+Audit Logging
+*/}}
+{{- $audit := .Values.auditLogging -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-logging
+  namespace: {{ .Values.namespaces.core }}
+  labels:
+    {{- include "atlas-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: audit-logging
+spec:
+  replicas: {{ $audit.replicaCount }}
+  selector:
+    matchLabels:
+      app: audit-logging
+  template:
+    metadata:
+      labels:
+        app: audit-logging
+    spec:
+      containers:
+        - name: audit-logging
+          image: {{ include "atlas-core.image" (dict "global" .Values.global "service" $audit) }}
+          ports:
+            - name: http
+              containerPort: {{ $audit.service.port }}
+          env:
+            - name: DATABASE_URL
+              value: {{ include "atlas-core.databaseUrl" . }}
+            - name: KAFKA_BROKERS
+              value: {{ include "atlas-core.kafkaBrokers" . }}
+          resources:
+            {{- toYaml $audit.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-logging
+  namespace: {{ .Values.namespaces.core }}
+spec:
+  ports:
+    - port: {{ $audit.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    app: audit-logging

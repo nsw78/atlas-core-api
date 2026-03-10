@@ -1,0 +1,38 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: gateway-pod-delete
+  namespace: atlas-gateway
+spec:
+  appinfo:
+    appns: atlas-gateway
+    applabel: app=api-gateway
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "15"
+            - name: FORCE
+              value: "false"
+            - name: PODS_AFFECTED_PERC
+              value: "33"
+        probe:
+          - name: gateway-health-check
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://api-gateway.atlas-gateway:8080/health
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 5
+              retry: 3

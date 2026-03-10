@@ -390,6 +390,7 @@ func buildServiceRegistry() map[string]string {
 		"entity-service":           "http://entity-service:8107",
 		"geospatial-service":       "http://geospatial-service:8108",
 		"intelligence-service":     "http://intelligence-service:8109",
+		"sanctions-screening":      "http://sanctions-screening:8000",
 	}
 
 	registry := make(map[string]string, len(defaults))

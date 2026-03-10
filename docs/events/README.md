@@ -49,6 +49,16 @@ All domain events in the ATLAS platform are published to Apache Kafka with struc
 | `ComplianceViolation` | `atlas.compliance.violation` | Compliance Automation | Regulatory compliance breach detected |
 | `IngestionCompleted` | `atlas.ingestion.completed` | Ingestion Service | Data ingestion batch processed |
 
+## Sanctions & Trade Intelligence Events
+
+| Event Type | Topic | Producer | Description |
+|------------|-------|----------|-------------|
+| `SanctionsScreened` | `atlas.sanctions.screened` | Sanctions Screening | Entity screened against global sanctions lists |
+| `SanctionsMatchFound` | `atlas.sanctions.match_found` | Sanctions Screening | Positive match found against a sanctions list entry |
+| `SanctionsListSynced` | `atlas.sanctions.list_synced` | Sanctions Screening | Sanctions list data refreshed from official source |
+| `TradeRestrictionFound` | `atlas.trade.restriction_found` | Sanctions Screening | Trade restriction identified for entity/country pair |
+| `TradeAdvisoryIssued` | `atlas.trade.advisory_issued` | Sanctions Screening | New trade advisory generated from intelligence analysis |
+
 ## Partitioning Strategy
 
 | Event Category | Partition Key | Rationale |
@@ -58,6 +68,8 @@ All domain events in the ATLAS platform are published to Apache Kafka with struc
 | Alert events | `alert_id` | Alert lifecycle events are ordered |
 | Simulation events | `simulation_id` | Simulation progress is ordered |
 | Ingestion events | `source_id` | Ingestion runs per source are ordered |
+| Sanctions events | `entity_name` | Screening results for same entity are ordered |
+| Trade events | `country_pair` | Trade intelligence per country pair is ordered |
 
 ## Consumer Groups
 
@@ -68,3 +80,4 @@ All domain events in the ATLAS platform are published to Apache Kafka with struc
 | `analytics-pipeline` | `atlas.*` | Batch analytics and reporting |
 | `notification-service` | `atlas.alert.triggered`, `atlas.compliance.violation` | Email/Slack notifications |
 | `risk-enrichment` | `atlas.osint.collected`, `atlas.nlp.analyzed`, `atlas.graph.updated` | Risk score recalculation |
+| `sanctions-monitor` | `atlas.sanctions.*`, `atlas.trade.*` | Sanctions compliance monitoring and alerting |

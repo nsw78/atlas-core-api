@@ -1,0 +1,248 @@
+# ============================================================
+# HashiCorp Vault - Kubernetes integration
+# ============================================================
+
+# Vault server deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: atlas-infra
+  labels:
+    app: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      serviceAccountName: vault
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.15
+          ports:
+            - containerPort: 8200
+              name: http
+            - containerPort: 8201
+              name: cluster
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "atlas-dev-token"
+            - name: VAULT_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8200"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+              httpHeaders:
+                - name: X-Vault-Request
+                  value: "true"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: atlas-infra
+spec:
+  selector:
+    app: vault
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+    - name: cluster
+      port: 8201
+      targetPort: 8201
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: atlas-infra
+---
+# Secret Provider Class for CSI driver integration
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: atlas-vault-secrets
+  namespace: atlas-core
+spec:
+  provider: vault
+  parameters:
+    vaultAddress: "http://vault.atlas-infra:8200"
+    roleName: "atlas-core"
+    objects: |
+      - objectName: "jwt-secret"
+        secretPath: "secret/data/atlas/jwt"
+        secretKey: "secret"
+      - objectName: "db-password"
+        secretPath: "secret/data/atlas/database"
+        secretKey: "password"
+      - objectName: "redis-password"
+        secretPath: "secret/data/atlas/redis"
+        secretKey: "password"
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: atlas-vault-secrets
+  namespace: atlas-intel
+spec:
+  provider: vault
+  parameters:
+    vaultAddress: "http://vault.atlas-infra:8200"
+    roleName: "atlas-intel"
+    objects: |
+      - objectName: "db-password"
+        secretPath: "secret/data/atlas/database"
+        secretKey: "password"
+      - objectName: "kafka-brokers"
+        secretPath: "secret/data/atlas/kafka"
+        secretKey: "brokers"
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: atlas-vault-secrets
+  namespace: atlas-ml
+spec:
+  provider: vault
+  parameters:
+    vaultAddress: "http://vault.atlas-infra:8200"
+    roleName: "atlas-ml"
+    objects: |
+      - objectName: "kafka-brokers"
+        secretPath: "secret/data/atlas/kafka"
+        secretKey: "brokers"
+      - objectName: "mlflow-db-password"
+        secretPath: "secret/data/atlas/mlflow"
+        secretKey: "db_password"
+
+# ============================================================
+# Vault Init Job - Seeds initial secrets
+# ============================================================
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: atlas-infra
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: vault-init
+          image: hashicorp/vault:1.15
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.atlas-infra:8200"
+            - name: VAULT_TOKEN
+              value: "atlas-dev-token"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              sleep 5
+              # Enable KV v2 secrets engine
+              vault secrets enable -path=secret kv-v2 2>/dev/null || true
+
+              # Database secrets
+              vault kv put secret/atlas/database \
+                host="postgres.atlas-infra" \
+                port="5432" \
+                username="atlas" \
+                password="$(openssl rand -base64 32)" \
+                database="atlas" \
+                sslmode="require"
+
+              # JWT secret
+              vault kv put secret/atlas/jwt \
+                secret="$(openssl rand -base64 64)"
+
+              # Redis secrets
+              vault kv put secret/atlas/redis \
+                host="redis.atlas-infra" \
+                port="6379" \
+                password="$(openssl rand -base64 32)" \
+                db="0"
+
+              # Kafka secrets
+              vault kv put secret/atlas/kafka \
+                brokers="kafka.atlas-infra:9092" \
+                username="" \
+                password="" \
+                sasl_mechanism=""
+
+              # API signing keys
+              vault kv put secret/atlas/api-keys \
+                hmac_key="$(openssl rand -base64 48)" \
+                signing_key="$(openssl rand -base64 48)"
+
+              # MLflow secrets
+              vault kv put secret/atlas/mlflow \
+                db_password="$(openssl rand -base64 32)" \
+                s3_access_key="" \
+                s3_secret_key=""
+
+              # Enable AppRole auth
+              vault auth enable approle 2>/dev/null || true
+
+              # Create policies
+              vault policy write atlas-core - <<'POLICY'
+              path "secret/data/atlas/database" { capabilities = ["read"] }
+              path "secret/data/atlas/jwt" { capabilities = ["read"] }
+              path "secret/data/atlas/redis" { capabilities = ["read"] }
+              path "secret/data/atlas/kafka" { capabilities = ["read"] }
+              path "secret/data/atlas/api-keys" { capabilities = ["read"] }
+              POLICY
+
+              vault policy write atlas-intel - <<'POLICY'
+              path "secret/data/atlas/database" { capabilities = ["read"] }
+              path "secret/data/atlas/kafka" { capabilities = ["read"] }
+              POLICY
+
+              vault policy write atlas-ml - <<'POLICY'
+              path "secret/data/atlas/kafka" { capabilities = ["read"] }
+              path "secret/data/atlas/mlflow" { capabilities = ["read"] }
+              POLICY
+
+              # Create AppRoles
+              vault write auth/approle/role/atlas-core \
+                policies="atlas-core" \
+                token_ttl=1h \
+                token_max_ttl=4h
+
+              vault write auth/approle/role/atlas-intel \
+                policies="atlas-intel" \
+                token_ttl=1h \
+                token_max_ttl=4h
+
+              vault write auth/approle/role/atlas-ml \
+                policies="atlas-ml" \
+                token_ttl=1h \
+                token_max_ttl=4h
+
+              # Enable Kubernetes auth
+              vault auth enable kubernetes 2>/dev/null || true
+
+              echo "Vault initialization complete"

@@ -1,20 +1,199 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: atlas-core
+    environment: production
 
+# =============================================
+# Alerting Configuration
+# =============================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+      timeout: 10s
+
+# =============================================
+# Alert Rules
+# =============================================
+rule_files:
+  - "prometheus/alerts/api_gateway.yml"
+  - "prometheus/alerts/services.yml"
+  - "prometheus/alerts/infrastructure.yml"
+
+# =============================================
+# Scrape Configurations - 31 Targets
+# =============================================
 scrape_configs:
-  - job_name: 'api-gateway'
+  # -------------------------------------------
+  # Prometheus Self-Monitoring
+  # -------------------------------------------
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['api-gateway:8080']
-  
-  - job_name: 'iam-service'
+      - targets: ["localhost:9090"]
+
+  # -------------------------------------------
+  # Core Platform Services
+  # -------------------------------------------
+  - job_name: "api-gateway"
+    metrics_path: /metrics
     static_configs:
-      - targets: ['iam-service:8081']
-  
-  - job_name: 'risk-assessment'
+      - targets: ["api-gateway:9090"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "api-gateway"
+
+  - job_name: "iam-service"
     static_configs:
-      - targets: ['risk-assessment:8082']
-  
-  - job_name: 'news-aggregator'
+      - targets: ["iam-service:8081"]
+
+  - job_name: "risk-assessment"
     static_configs:
-      - targets: ['news-aggregator:8083']
+      - targets: ["risk-assessment:8082"]
+
+  - job_name: "ingestion-service"
+    static_configs:
+      - targets: ["ingestion-service:8083"]
+
+  - job_name: "normalization-service"
+    static_configs:
+      - targets: ["normalization-service:8084"]
+
+  - job_name: "audit-logging"
+    static_configs:
+      - targets: ["audit-logging:8085"]
+
+  - job_name: "graph-intelligence"
+    static_configs:
+      - targets: ["graph-intelligence:8089"]
+
+  - job_name: "sanctions-screening"
+    static_configs:
+      - targets: ["sanctions-screening:8000"]
+
+  - job_name: "news-aggregator"
+    static_configs:
+      - targets: ["news-aggregator:8086"]
+
+  # -------------------------------------------
+  # ML & AI Services
+  # -------------------------------------------
+  - job_name: "ml-infrastructure"
+    static_configs:
+      - targets: ["ml-infrastructure:8100"]
+
+  - job_name: "model-serving"
+    static_configs:
+      - targets: ["model-serving:8101"]
+
+  - job_name: "model-monitoring"
+    static_configs:
+      - targets: ["model-monitoring:8102"]
+
+  - job_name: "nlp-service"
+    static_configs:
+      - targets: ["nlp-service:8103"]
+
+  - job_name: "xai-service"
+    static_configs:
+      - targets: ["xai-service:8104"]
+
+  - job_name: "federated-learning"
+    static_configs:
+      - targets: ["federated-learning:8105"]
+
+  # -------------------------------------------
+  # Analytics & Simulation Services
+  # -------------------------------------------
+  - job_name: "scenario-simulation"
+    static_configs:
+      - targets: ["scenario-simulation:8110"]
+
+  - job_name: "war-gaming"
+    static_configs:
+      - targets: ["war-gaming:8111"]
+
+  - job_name: "policy-impact"
+    static_configs:
+      - targets: ["policy-impact:8112"]
+
+  - job_name: "digital-twins"
+    static_configs:
+      - targets: ["digital-twins:8113"]
+
+  # -------------------------------------------
+  # Compliance & Security Services
+  # -------------------------------------------
+  - job_name: "compliance-automation"
+    static_configs:
+      - targets: ["compliance-automation:8120"]
+
+  - job_name: "security-certification"
+    static_configs:
+      - targets: ["security-certification:8121"]
+
+  - job_name: "data-residency"
+    static_configs:
+      - targets: ["data-residency:8122"]
+
+  # -------------------------------------------
+  # Platform & Optimization Services
+  # -------------------------------------------
+  - job_name: "advanced-rd"
+    static_configs:
+      - targets: ["advanced-rd:8130"]
+
+  - job_name: "cost-optimization"
+    static_configs:
+      - targets: ["cost-optimization:8131"]
+
+  - job_name: "continuous-improvement"
+    static_configs:
+      - targets: ["continuous-improvement:8132"]
+
+  - job_name: "performance-optimization"
+    static_configs:
+      - targets: ["performance-optimization:8133"]
+
+  - job_name: "multi-region"
+    static_configs:
+      - targets: ["multi-region:8134"]
+
+  - job_name: "mobile-api"
+    static_configs:
+      - targets: ["mobile-api:8135"]
+
+  - job_name: "python-api-gateway"
+    static_configs:
+      - targets: ["python-api-gateway:8140"]
+
+  # -------------------------------------------
+  # Infrastructure Components
+  # -------------------------------------------
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+    params:
+      target: ["postgres:5432"]
+
+  - job_name: "postgis"
+    static_configs:
+      - targets: ["postgis-exporter:9188"]
+    params:
+      target: ["postgis:5432"]
+
+  - job_name: "kafka"
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]

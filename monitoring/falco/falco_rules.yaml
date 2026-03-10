@@ -1,0 +1,77 @@
+- rule: ATLAS Unexpected Outbound Connection
+  desc: Detect outbound connections from ATLAS containers to unexpected IPs
+  condition: >
+    outbound and container and
+    container.image.repository startswith "atlas/" and
+    not (fd.sport in (80, 443, 5432, 6379, 9092, 8080, 8081, 8082))
+  output: "Unexpected outbound from ATLAS (command=%proc.cmdline conn=%fd.name container=%container.name image=%container.image.repository)"
+  priority: WARNING
+  tags: [network, atlas]
+
+- rule: ATLAS Shell Spawned in Container
+  desc: Detect shell access in ATLAS production containers
+  condition: >
+    spawned_process and container and
+    container.image.repository startswith "atlas/" and
+    proc.name in (bash, sh, zsh, dash, csh)
+  output: "Shell spawned in ATLAS container (user=%user.name command=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [process, atlas, mitre_execution]
+
+- rule: ATLAS Sensitive File Access
+  desc: Detect access to sensitive paths in ATLAS containers
+  condition: >
+    open_read and container and
+    container.image.repository startswith "atlas/" and
+    (fd.name startswith "/etc/shadow" or
+     fd.name contains "jwt_secret" or
+     fd.name contains ".env" or
+     fd.name contains "credentials" or
+     fd.name contains "private_key")
+  output: "Sensitive file access in ATLAS (file=%fd.name proc=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [filesystem, atlas, mitre_credential_access]
+
+- rule: ATLAS Privilege Escalation Attempt
+  desc: Detect privilege escalation in ATLAS containers
+  condition: >
+    spawned_process and container and
+    container.image.repository startswith "atlas/" and
+    proc.name in (sudo, su, setuid)
+  output: "Privilege escalation in ATLAS (user=%user.name command=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [process, atlas, mitre_privilege_escalation]
+
+- rule: ATLAS Crypto Mining Detection
+  desc: Detect potential cryptocurrency mining
+  condition: >
+    spawned_process and container and
+    container.image.repository startswith "atlas/" and
+    (proc.name in (xmrig, minerd, cpuminer, cgminer) or
+     proc.cmdline contains "stratum+tcp" or
+     proc.cmdline contains "cryptonight")
+  output: "Possible crypto mining in ATLAS (proc=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [process, atlas, crypto]
+
+- rule: ATLAS Database Credential Access
+  desc: Detect direct database credential access
+  condition: >
+    open_read and container and
+    container.image.repository startswith "atlas/" and
+    (fd.name contains "pg_hba.conf" or
+     fd.name contains "pgpass" or
+     fd.name contains "redis.conf")
+  output: "DB credential access in ATLAS (file=%fd.name proc=%proc.cmdline container=%container.name)"
+  priority: WARNING
+  tags: [filesystem, atlas, database]
+
+- rule: ATLAS Network Scanning
+  desc: Detect network scanning from ATLAS containers
+  condition: >
+    spawned_process and container and
+    container.image.repository startswith "atlas/" and
+    proc.name in (nmap, masscan, zmap, netcat, nc)
+  output: "Network scanning from ATLAS (proc=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [network, atlas, mitre_discovery]

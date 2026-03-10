@@ -1,0 +1,301 @@
+groups:
+  # =============================================================
+  # Kafka Infrastructure Alerts
+  # =============================================================
+  - name: kafka_infrastructure_alerts
+    rules:
+      - alert: KafkaBrokerDown
+        expr: |
+          kafka_brokers{job="kafka"} < 1
+        for: 1m
+        labels:
+          severity: critical
+          service: kafka
+          team: platform
+        annotations:
+          summary: "Kafka broker is down"
+          description: >-
+            The number of active Kafka brokers is {{ $value }}.
+            Message production and consumption may be impacted across all
+            services. Immediately investigate broker health, ZooKeeper
+            connectivity, and disk space.
+          runbook_url: "https://wiki.internal/runbooks/kafka/broker-down"
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: |
+          kafka_server_replicamanager_underreplicatedpartitions > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: kafka
+          team: platform
+        annotations:
+          summary: "Kafka has {{ $value }} under-replicated partitions"
+          description: >-
+            There are {{ $value }} under-replicated partitions in the Kafka
+            cluster. This puts data durability at risk. Check broker disk
+            I/O, network connectivity, and ISR status.
+          runbook_url: "https://wiki.internal/runbooks/kafka/under-replicated"
+
+      - alert: KafkaOfflinePartitions
+        expr: |
+          kafka_controller_kafkacontroller_offlinepartitionscount > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kafka
+          team: platform
+        annotations:
+          summary: "Kafka has {{ $value }} offline partitions"
+          description: >-
+            {{ $value }} partitions are offline and cannot serve reads or
+            writes. This is a data availability emergency.
+          runbook_url: "https://wiki.internal/runbooks/kafka/offline-partitions"
+
+      - alert: KafkaDiskUsageHigh
+        expr: |
+          (
+            kafka_log_log_size_bytes / kafka_log_log_max_size_bytes
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: kafka
+          team: platform
+        annotations:
+          summary: "Kafka log disk usage exceeds 85%"
+          description: >-
+            Kafka broker disk usage is at {{ $value | humanizePercentage }}.
+            Increase retention cleanup or expand storage before partitions
+            become unavailable.
+          runbook_url: "https://wiki.internal/runbooks/kafka/disk-usage"
+
+  # =============================================================
+  # PostgreSQL Infrastructure Alerts
+  # =============================================================
+  - name: postgresql_infrastructure_alerts
+    rules:
+      - alert: PostgreSQLReplicationLag
+        expr: |
+          pg_replication_lag_seconds{job=~"postgres|postgis"} > 30
+        for: 5m
+        labels:
+          severity: critical
+          service: postgresql
+          team: platform
+        annotations:
+          summary: "PostgreSQL replication lag exceeds 30 seconds"
+          description: >-
+            Replication lag on {{ $labels.instance }} is
+            {{ $value | humanizeDuration }}. Replica reads may return stale
+            data. Investigate network bandwidth between primary and replica,
+            write throughput on primary, and replica disk I/O.
+          runbook_url: "https://wiki.internal/runbooks/postgresql/replication-lag"
+
+      - alert: PostgreSQLDown
+        expr: |
+          pg_up{job=~"postgres|postgis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+          team: platform
+        annotations:
+          summary: "PostgreSQL instance {{ $labels.instance }} is down"
+          description: >-
+            The PostgreSQL instance at {{ $labels.instance }} is unreachable.
+            All dependent services will experience failures. Check container
+            health, disk space, and OOM events.
+          runbook_url: "https://wiki.internal/runbooks/postgresql/instance-down"
+
+      - alert: PostgreSQLHighConnections
+        expr: |
+          (
+            sum(pg_stat_activity_count{job=~"postgres|postgis"}) by (instance)
+            /
+            pg_settings_max_connections{job=~"postgres|postgis"}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          team: platform
+        annotations:
+          summary: "PostgreSQL connections >85% of max on {{ $labels.instance }}"
+          description: >-
+            {{ $value | humanizePercentage }} of max connections are in use.
+            New connections may be refused. Investigate connection leaks
+            and consider increasing max_connections or using PgBouncer.
+          runbook_url: "https://wiki.internal/runbooks/postgresql/high-connections"
+
+      - alert: PostgreSQLDeadlocks
+        expr: |
+          rate(pg_stat_database_deadlocks_total{job=~"postgres|postgis"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          team: platform
+        annotations:
+          summary: "PostgreSQL deadlocks detected on {{ $labels.datname }}"
+          description: >-
+            Database {{ $labels.datname }} is experiencing
+            {{ $value | humanize }} deadlocks/sec. Review concurrent
+            transaction patterns and lock ordering.
+
+      - alert: PostgreSQLLongRunningQueries
+        expr: |
+          pg_stat_activity_max_tx_duration_seconds{job=~"postgres|postgis"} > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          team: platform
+        annotations:
+          summary: "Long-running query detected on {{ $labels.instance }}"
+          description: >-
+            A query on {{ $labels.instance }} has been running for
+            {{ $value | humanizeDuration }}. This may cause lock contention
+            and bloat. Identify and terminate if appropriate.
+
+  # =============================================================
+  # Redis Infrastructure Alerts
+  # =============================================================
+  - name: redis_infrastructure_alerts
+    rules:
+      - alert: RedisEvictionsHigh
+        expr: |
+          rate(redis_evicted_keys_total{job="redis"}[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis evicting keys at {{ $value | humanize }}/sec"
+          description: >-
+            Redis is evicting {{ $value | humanize }} keys per second due to
+            memory pressure. This will degrade cache hit rates and increase
+            latency for dependent services. Scale Redis memory or review
+            key expiration policies.
+          runbook_url: "https://wiki.internal/runbooks/redis/evictions"
+
+      - alert: RedisDown
+        expr: |
+          redis_up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis instance is down"
+          description: >-
+            The Redis instance is unreachable. Caching, session storage,
+            and rate limiting will be affected across all services.
+          runbook_url: "https://wiki.internal/runbooks/redis/instance-down"
+
+      - alert: RedisRejectedConnections
+        expr: |
+          rate(redis_rejected_connections_total{job="redis"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis is rejecting connections"
+          description: >-
+            Redis is rejecting {{ $value | humanize }} connections/sec.
+            The maxclients limit may be reached. Increase maxclients or
+            investigate connection leaks in application services.
+
+  # =============================================================
+  # TLS Certificate Alerts
+  # =============================================================
+  - name: certificate_alerts
+    rules:
+      - alert: CertificateExpiringSoon
+        expr: |
+          (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "TLS certificate for {{ $labels.instance }} expires in {{ $value | humanize }} days"
+          description: >-
+            The TLS certificate for {{ $labels.instance }} will expire in
+            {{ $value | humanize }} days. Renew the certificate before
+            expiration to avoid service disruption. Check cert-manager
+            status if using automated renewal.
+          runbook_url: "https://wiki.internal/runbooks/certificates/renewal"
+
+      - alert: CertificateExpiryCritical
+        expr: |
+          (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 10m
+        labels:
+          severity: critical
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "TLS certificate for {{ $labels.instance }} expires in less than 7 days"
+          description: >-
+            URGENT: The TLS certificate for {{ $labels.instance }} will expire
+            in {{ $value | humanize }} days. Immediate renewal required.
+
+  # =============================================================
+  # Disk Usage Alerts
+  # =============================================================
+  - name: disk_alerts
+    rules:
+      - alert: DiskUsageHigh
+        expr: |
+          (
+            node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"}
+          ) / node_filesystem_size_bytes{mountpoint="/"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "Disk usage exceeds 85% on {{ $labels.instance }}"
+          description: >-
+            Disk usage on {{ $labels.instance }} ({{ $labels.mountpoint }})
+            is at {{ $value | humanizePercentage }}. Free up space or expand
+            the volume before it reaches capacity.
+          runbook_url: "https://wiki.internal/runbooks/infrastructure/disk-usage"
+
+      - alert: DiskUsageCritical
+        expr: |
+          (
+            node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"}
+          ) / node_filesystem_size_bytes{mountpoint="/"} > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "CRITICAL: Disk usage exceeds 95% on {{ $labels.instance }}"
+          description: >-
+            Disk usage on {{ $labels.instance }} is at
+            {{ $value | humanizePercentage }}. Services may crash due to
+            inability to write logs or data. Immediate intervention required.
+
+      - alert: DiskIOSaturation
+        expr: |
+          rate(node_disk_io_time_weighted_seconds_total[5m]) > 0.95
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "Disk I/O saturated on {{ $labels.instance }}"
+          description: >-
+            The disk on {{ $labels.instance }} ({{ $labels.device }}) is
+            nearly saturated. Database and logging performance will degrade.

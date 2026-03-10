@@ -1,0 +1,38 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: kafka-broker-kill
+  namespace: atlas-infra
+spec:
+  appinfo:
+    appns: atlas-infra
+    applabel: app=kafka
+    appkind: statefulset
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: CHAOS_INTERVAL
+              value: "30"
+            - name: FORCE
+              value: "false"
+            - name: PODS_AFFECTED_PERC
+              value: "33"
+        probe:
+          - name: kafka-producer-check
+            type: cmdProbe
+            cmdProbe/inputs:
+              command: "kafka-broker-api-versions.sh --bootstrap-server kafka.atlas-infra:9092"
+              comparator:
+                type: string
+                criteria: contains
+                value: "ApiVersion"
+            mode: Edge
+            runProperties:
+              probeTimeout: 30
+              interval: 15
+              retry: 5

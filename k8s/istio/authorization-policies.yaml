@@ -1,0 +1,151 @@
+# ============================================================
+# ISTIO Authorization Policies - Zero-trust service access
+# ============================================================
+
+# Only API Gateway can access core services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-core
+  namespace: atlas-core
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["atlas-gateway"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    - from:
+        - source:
+            namespaces: ["atlas-core"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+---
+# Only API Gateway and core services can access intel services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-intel
+  namespace: atlas-intel
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["atlas-gateway", "atlas-core"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    - from:
+        - source:
+            namespaces: ["atlas-intel"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+---
+# ML namespace accessible from intel and gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-to-ml
+  namespace: atlas-ml
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["atlas-gateway", "atlas-intel", "atlas-core"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+    - from:
+        - source:
+            namespaces: ["atlas-ml"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT"]
+---
+# Data namespace only from scheduled jobs and internal
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-to-data
+  namespace: atlas-data
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["atlas-core", "atlas-intel", "atlas-ml"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+---
+# Deny all external access to infra namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-external-to-infra
+  namespace: atlas-infra
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            notNamespaces: ["atlas-gateway", "atlas-core", "atlas-intel", "atlas-ml", "atlas-data", "atlas-infra", "atlas-monitoring"]
+---
+# Allow health checks from Istio system
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: atlas-gateway
+spec:
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            paths: ["/health", "/healthz", "/readyz", "/metrics"]
+            methods: ["GET"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: atlas-core
+spec:
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            paths: ["/health", "/healthz", "/readyz", "/metrics"]
+            methods: ["GET"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: atlas-intel
+spec:
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            paths: ["/health", "/healthz", "/readyz", "/metrics"]
+            methods: ["GET"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: atlas-ml
+spec:
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            paths: ["/health", "/healthz", "/readyz", "/metrics"]
+            methods: ["GET"]

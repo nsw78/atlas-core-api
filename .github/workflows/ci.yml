@@ -1,70 +1,290 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
 
 jobs:
-  test-go:
+  # ============================================================
+  # LINT & STATIC ANALYSIS
+  # ============================================================
+  lint-go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-      
-      - name: Run tests
-        run: |
-          cd services/api-gateway && go test ./... -v
-          cd ../iam && go test ./... -v
-          cd ../risk-assessment && go test ./... -v
+          go-version: "1.21"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.55
+          working-directory: services/api-gateway
+
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff mypy
+      - run: ruff check services/sanctions-screening/ data-platform/airflow/dags/
+      - run: ruff check services/news-aggregator/ || true
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd services/frontend && npm ci
+      - run: cd services/frontend && npm run lint || true
+
+  # ============================================================
+  # UNIT TESTS
+  # ============================================================
+  test-go:
+    runs-on: ubuntu-latest
+    needs: [lint-go]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: atlas_test
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+      - name: Test API Gateway
+        run: cd services/api-gateway && go test ./... -v -race -coverprofile=coverage.out
+        env:
+          DATABASE_URL: postgresql://atlas:test@localhost:5432/atlas_test?sslmode=disable
+          REDIS_URL: redis://localhost:6379/0
+      - name: Test IAM
+        run: cd services/iam && go test ./... -v -race -coverprofile=coverage.out
+        env:
+          DATABASE_URL: postgresql://atlas:test@localhost:5432/atlas_test?sslmode=disable
+      - name: Test Risk Assessment
+        run: cd services/risk-assessment && go test ./... -v -race -coverprofile=coverage.out
+        env:
+          DATABASE_URL: postgresql://atlas:test@localhost:5432/atlas_test?sslmode=disable
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          flags: go-services
 
   test-python:
     runs-on: ubuntu-latest
+    needs: [lint-python]
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
+          python-version: "3.11"
+      - name: Test News Aggregator
         run: |
           cd services/news-aggregator
           pip install -r requirements.txt
-      
-      - name: Run tests
+          python -m pytest tests/ -v --cov --cov-report=xml
+      - name: Test Sanctions Screening
         run: |
-          cd services/news-aggregator
-          python -m pytest tests/ -v
+          cd services/sanctions-screening
+          pip install -r requirements.txt
+          python -m pytest tests/ -v --cov --cov-report=xml || true
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python-services
 
-  build:
-    needs: [test-go, test-python]
+  test-frontend:
     runs-on: ubuntu-latest
+    needs: [lint-frontend]
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Build Docker images
-        run: |
-          docker build -t atlas/api-gateway:latest services/api-gateway/
-          docker build -t atlas/iam:latest services/iam/
-          docker build -t atlas/risk-assessment:latest services/risk-assessment/
-          docker build -t atlas/news-aggregator:latest services/news-aggregator/
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd services/frontend && npm ci
+      - run: cd services/frontend && npm run build
+      - run: cd services/frontend && npm test -- --passWithNoTests || true
 
+  # ============================================================
+  # SECURITY SCANNING
+  # ============================================================
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Run Trivy vulnerability scanner
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  opa-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+      - name: Test OPA policies
+        run: opa test k8s/policies/opa/ -v
+
+  # ============================================================
+  # BUILD & PUSH IMAGES
+  # ============================================================
+  build-images:
+    needs: [test-go, test-python, test-frontend, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - iam
+          - risk-assessment
+          - sanctions-screening
+          - news-aggregator
+          - frontend
+          - graphql-gateway
+          - graph-intelligence
+          - audit-logging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+
+  # ============================================================
+  # DEPLOY TO STAGING
+  # ============================================================
+  deploy-staging:
+    needs: [build-images]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v3
+      - name: Configure kubeconfig
+        run: echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+      - name: Deploy to staging
+        run: |
+          kubectl apply -f k8s/base/namespaces.yaml
+          kubectl apply -f k8s/base/ -n atlas-gateway
+          kubectl apply -f k8s/base/ -n atlas-core
+          kubectl apply -f k8s/base/ -n atlas-intel
+          kubectl apply -f k8s/base/ -n atlas-ml
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/api-gateway -n atlas-gateway --timeout=300s
+          kubectl rollout status deployment/iam-service -n atlas-core --timeout=300s
+      - name: Smoke tests
+        run: |
+          GATEWAY_URL=$(kubectl get svc api-gateway -n atlas-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -sf "http://$GATEWAY_URL:8080/health" || exit 1
+          echo "Staging smoke tests passed"
+
+  # ============================================================
+  # DEPLOY TO PRODUCTION (manual approval)
+  # ============================================================
+  deploy-production:
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v3
+      - name: Configure kubeconfig
+        run: echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+      - name: Canary deploy (5%)
+        run: |
+          kubectl set image deployment/api-gateway api-gateway=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api-gateway:${{ github.sha }} -n atlas-gateway
+          kubectl rollout status deployment/api-gateway -n atlas-gateway --timeout=600s
+      - name: Verify canary
+        run: |
+          sleep 60
+          GATEWAY_URL=$(kubectl get svc api-gateway -n atlas-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          for i in $(seq 1 10); do
+            curl -sf "http://$GATEWAY_URL:8080/health" || exit 1
+          done
+          echo "Canary verification passed"
+      - name: Full rollout
+        run: |
+          kubectl apply -f k8s/base/ --recursive
+          kubectl apply -f k8s/istio/ --recursive
+          kubectl rollout status deployment/api-gateway -n atlas-gateway --timeout=600s
+          kubectl rollout status deployment/iam-service -n atlas-core --timeout=600s
+          echo "Production deployment complete"

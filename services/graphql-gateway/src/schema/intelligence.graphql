@@ -1,0 +1,247 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external"])
+
+"""Entity type classification"""
+enum EntityType {
+  PERSON
+  ORGANIZATION
+  VESSEL
+  AIRCRAFT
+  ADDRESS
+  FINANCIAL_INSTRUMENT
+  GOVERNMENT_BODY
+  CRYPTO_WALLET
+}
+
+"""Relationship type between entities"""
+enum RelationshipType {
+  OWNERSHIP
+  DIRECTORSHIP
+  BENEFICIAL_OWNER
+  FAMILY
+  BUSINESS_PARTNER
+  FINANCIAL_LINK
+  SANCTIONS_LINK
+  LEGAL_REPRESENTATIVE
+  EMPLOYER
+  SUPPLIER
+  CUSTOMER
+}
+
+"""OSINT signal classification"""
+enum SignalCategory {
+  SANCTIONS
+  PEP
+  ADVERSE_MEDIA
+  REGULATORY_ACTION
+  LITIGATION
+  CORPORATE_EVENT
+  FINANCIAL_ANOMALY
+  GEOPOLITICAL
+  CYBER_THREAT
+  ESG
+}
+
+"""Signal reliability assessment"""
+enum SignalReliability {
+  CONFIRMED
+  PROBABLE
+  POSSIBLE
+  DOUBTFUL
+  IMPROBABLE
+}
+
+"""Knowledge graph entity"""
+type Entity @key(fields: "id") {
+  id: ID!
+  type: EntityType!
+  name: String!
+  aliases: [String!]!
+  country: String
+  jurisdiction: String
+  riskScore: Float
+  firstSeen: String!
+  lastUpdated: String!
+  attributes: [EntityAttribute!]!
+  relationships: [GraphRelationship!]!
+  signals: [OSINTSignal!]!
+  communities: [Community!]!
+}
+
+"""Dynamic key-value attribute on an entity"""
+type EntityAttribute {
+  key: String!
+  value: String!
+  source: String!
+  confidence: Float!
+  lastVerified: String!
+}
+
+"""Relationship between two entities in the knowledge graph"""
+type GraphRelationship @key(fields: "id") {
+  id: ID!
+  sourceEntityId: String!
+  targetEntityId: String!
+  sourceEntity: Entity
+  targetEntity: Entity
+  type: RelationshipType!
+  strength: Float!
+  confidence: Float!
+  startDate: String
+  endDate: String
+  evidence: [Evidence!]!
+  metadata: [RelationshipMeta!]!
+}
+
+"""Evidence supporting a relationship or signal"""
+type Evidence {
+  source: String!
+  sourceUrl: String
+  extractedAt: String!
+  snippet: String!
+  confidence: Float!
+  documentId: String
+}
+
+"""Additional metadata on a relationship"""
+type RelationshipMeta {
+  key: String!
+  value: String!
+}
+
+"""Community detection result - cluster of related entities"""
+type Community @key(fields: "id") {
+  id: ID!
+  name: String
+  description: String
+  entityCount: Int!
+  riskScore: Float
+  detectedAt: String!
+  algorithm: String!
+  entities: [Entity!]!
+  centralEntities: [Entity!]!
+  characteristics: [String!]!
+}
+
+"""Open-source intelligence signal"""
+type OSINTSignal @key(fields: "id") {
+  id: ID!
+  entityId: String!
+  category: SignalCategory!
+  title: String!
+  summary: String!
+  content: String
+  reliability: SignalReliability!
+  severity: String!
+  source: String!
+  sourceUrl: String
+  publishedAt: String!
+  collectedAt: String!
+  language: String!
+  sentiment: Float
+  relevanceScore: Float!
+  tags: [String!]!
+  relatedSignals: [OSINTSignal!]!
+}
+
+"""Intelligence briefing combining multiple signals"""
+type Briefing @key(fields: "id") {
+  id: ID!
+  title: String!
+  summary: String!
+  classification: String!
+  generatedAt: String!
+  validUntil: String
+  author: String!
+  entityIds: [String!]!
+  signals: [OSINTSignal!]!
+  recommendations: [String!]!
+  impactAssessment: String
+  relatedBriefings: [Briefing!]!
+}
+
+"""Graph traversal path result"""
+type GraphPath {
+  entities: [Entity!]!
+  relationships: [GraphRelationship!]!
+  totalLength: Int!
+  riskScore: Float!
+}
+
+input EntityFilter {
+  type: EntityType
+  country: String
+  minRiskScore: Float
+  maxRiskScore: Float
+  nameContains: String
+  updatedAfter: String
+}
+
+input SignalFilter {
+  entityId: String
+  category: SignalCategory
+  reliability: SignalReliability
+  minRelevance: Float
+  publishedAfter: String
+  publishedBefore: String
+  language: String
+}
+
+input PathQueryInput {
+  sourceEntityId: String!
+  targetEntityId: String!
+  maxDepth: Int = 5
+  relationshipTypes: [RelationshipType!]
+}
+
+type Query {
+  """Get an entity by ID"""
+  entity(id: ID!): Entity
+
+  """Search entities with filters"""
+  entities(
+    filter: EntityFilter
+    limit: Int = 25
+    offset: Int = 0
+  ): [Entity!]!
+
+  """Get a relationship by ID"""
+  graphRelationship(id: ID!): GraphRelationship
+
+  """Get relationships for an entity"""
+  entityRelationships(
+    entityId: String!
+    types: [RelationshipType!]
+    depth: Int = 1
+    limit: Int = 100
+  ): [GraphRelationship!]!
+
+  """Detect communities for an entity"""
+  entityCommunities(entityId: String!): [Community!]!
+
+  """Get a community by ID"""
+  community(id: ID!): Community
+
+  """Get OSINT signals"""
+  osintSignals(
+    filter: SignalFilter
+    limit: Int = 50
+    offset: Int = 0
+  ): [OSINTSignal!]!
+
+  """Get a specific signal"""
+  osintSignal(id: ID!): OSINTSignal
+
+  """Find shortest paths between two entities"""
+  findPaths(input: PathQueryInput!): [GraphPath!]!
+
+  """Get an intelligence briefing"""
+  briefing(id: ID!): Briefing
+
+  """List recent briefings"""
+  briefings(
+    classification: String
+    limit: Int = 10
+    offset: Int = 0
+  ): [Briefing!]!
+}

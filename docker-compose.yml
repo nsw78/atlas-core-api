@@ -347,6 +347,37 @@ services:
     restart: unless-stopped
 
   # ===========================================
+  # SANCTIONS SCREENING & TRADE INTELLIGENCE
+  # ===========================================
+  sanctions-screening:
+    build:
+      context: ./services/sanctions-screening
+      dockerfile: Dockerfile
+    container_name: atlas-sanctions-screening
+    ports:
+      - "8091:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/3
+      - SYNC_INTERVAL_HOURS=6
+      - LOG_LEVEL=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  # ===========================================
   # FRONTEND
   # ===========================================
   frontend:

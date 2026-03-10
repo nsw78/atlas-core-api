@@ -1,0 +1,47 @@
+# ============================================================
+# ISTIO mTLS - Strict mode for all ATLAS namespaces
+# ============================================================
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: atlas-strict-mtls
+  namespace: atlas-gateway
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: atlas-strict-mtls
+  namespace: atlas-core
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: atlas-strict-mtls
+  namespace: atlas-intel
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: atlas-strict-mtls
+  namespace: atlas-ml
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: atlas-strict-mtls
+  namespace: atlas-data
+spec:
+  mtls:
+    mode: STRICT

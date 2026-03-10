@@ -1,0 +1,783 @@
+# ============================================================
+# ATLAS ML NAMESPACE - ML Infra, Model Serving, Monitoring, XAI, Federated
+# ============================================================
+
+# --- ML Infrastructure ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-infrastructure
+  namespace: atlas-ml
+  labels:
+    app: ml-infrastructure
+    tier: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ml-infrastructure
+  template:
+    metadata:
+      labels:
+        app: ml-infrastructure
+        tier: ml
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8087"
+    spec:
+      containers:
+        - name: ml-infrastructure
+          image: atlas/ml-infrastructure:latest
+          ports:
+            - containerPort: 8087
+              name: http
+          env:
+            - name: PORT
+              value: "8087"
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: atlas-common-config
+                  key: KAFKA_BROKERS
+            - name: MLFLOW_TRACKING_URI
+              value: "http://mlflow.atlas-ml:5000"
+            - name: FEATURE_STORE_URL
+              value: "http://feast.atlas-ml:6566"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8087
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8087
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-infrastructure
+  namespace: atlas-ml
+spec:
+  selector:
+    app: ml-infrastructure
+  ports:
+    - name: http
+      port: 8087
+      targetPort: 8087
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ml-infrastructure-hpa
+  namespace: atlas-ml
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-infrastructure
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+---
+# --- Model Serving ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-serving
+  namespace: atlas-ml
+  labels:
+    app: model-serving
+    tier: ml
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: model-serving
+  template:
+    metadata:
+      labels:
+        app: model-serving
+        tier: ml
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8091"
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: model-serving
+      containers:
+        - name: model-serving
+          image: atlas/model-serving:latest
+          ports:
+            - containerPort: 8091
+              name: http
+          env:
+            - name: PORT
+              value: "8091"
+            - name: MLFLOW_TRACKING_URI
+              value: "http://mlflow.atlas-ml:5000"
+            - name: MODEL_CACHE_DIR
+              value: "/models"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+      volumes:
+        - name: model-cache
+          emptyDir:
+            sizeLimit: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-serving
+  namespace: atlas-ml
+spec:
+  selector:
+    app: model-serving
+  ports:
+    - name: http
+      port: 8091
+      targetPort: 8091
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: model-serving-hpa
+  namespace: atlas-ml
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: model-serving
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: model-serving-pdb
+  namespace: atlas-ml
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: model-serving
+---
+# --- Model Monitoring ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-monitoring
+  namespace: atlas-ml
+  labels:
+    app: model-monitoring
+    tier: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: model-monitoring
+  template:
+    metadata:
+      labels:
+        app: model-monitoring
+        tier: ml
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: model-monitoring
+          image: atlas/model-monitoring:latest
+          ports:
+            - containerPort: 8092
+              name: http
+          env:
+            - name: PORT
+              value: "8092"
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: atlas-common-config
+                  key: KAFKA_BROKERS
+            - name: MLFLOW_TRACKING_URI
+              value: "http://mlflow.atlas-ml:5000"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8092
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-monitoring
+  namespace: atlas-ml
+spec:
+  selector:
+    app: model-monitoring
+  ports:
+    - name: http
+      port: 8092
+      targetPort: 8092
+---
+# --- XAI Service ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xai-service
+  namespace: atlas-ml
+  labels:
+    app: xai-service
+    tier: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: xai-service
+  template:
+    metadata:
+      labels:
+        app: xai-service
+        tier: ml
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: xai-service
+          image: atlas/xai-service:latest
+          ports:
+            - containerPort: 8090
+              name: http
+          env:
+            - name: PORT
+              value: "8090"
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: atlas-common-config
+                  key: KAFKA_BROKERS
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xai-service
+  namespace: atlas-ml
+spec:
+  selector:
+    app: xai-service
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+---
+# --- Federated Learning ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: federated-learning
+  namespace: atlas-ml
+  labels:
+    app: federated-learning
+    tier: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: federated-learning
+  template:
+    metadata:
+      labels:
+        app: federated-learning
+        tier: ml
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: federated-learning
+          image: atlas/federated-learning:latest
+          ports:
+            - containerPort: 8099
+              name: http
+          env:
+            - name: PORT
+              value: "8099"
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: atlas-common-config
+                  key: KAFKA_BROKERS
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8099
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8099
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: federated-learning
+  namespace: atlas-ml
+spec:
+  selector:
+    app: federated-learning
+  ports:
+    - name: http
+      port: 8099
+      targetPort: 8099
+---
+# --- Remaining Services (Mobile, Cost, Performance, Security, R&D, Continuous Improvement) ---
+
+# Mobile API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-api
+  namespace: atlas-core
+  labels:
+    app: mobile-api
+    tier: core
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mobile-api
+  template:
+    metadata:
+      labels:
+        app: mobile-api
+        tier: core
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: mobile-api
+          image: atlas/mobile-api:latest
+          ports:
+            - containerPort: 8100
+              name: http
+          env:
+            - name: PORT
+              value: "8100"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: url
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8100
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8100
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-api
+  namespace: atlas-core
+spec:
+  selector:
+    app: mobile-api
+  ports:
+    - name: http
+      port: 8100
+      targetPort: 8100
+---
+# Performance Optimization
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-optimization
+  namespace: atlas-core
+  labels:
+    app: performance-optimization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-optimization
+  template:
+    metadata:
+      labels:
+        app: performance-optimization
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: performance-optimization
+          image: atlas/performance-optimization:latest
+          ports:
+            - containerPort: 8102
+              name: http
+          env:
+            - name: PORT
+              value: "8102"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8102
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-optimization
+  namespace: atlas-core
+spec:
+  selector:
+    app: performance-optimization
+  ports:
+    - name: http
+      port: 8102
+      targetPort: 8102
+---
+# Cost Optimization
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-optimization
+  namespace: atlas-core
+  labels:
+    app: cost-optimization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cost-optimization
+  template:
+    metadata:
+      labels:
+        app: cost-optimization
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: cost-optimization
+          image: atlas/cost-optimization:latest
+          ports:
+            - containerPort: 8103
+              name: http
+          env:
+            - name: PORT
+              value: "8103"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8103
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cost-optimization
+  namespace: atlas-core
+spec:
+  selector:
+    app: cost-optimization
+  ports:
+    - name: http
+      port: 8103
+      targetPort: 8103
+---
+# Advanced R&D
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advanced-rd
+  namespace: atlas-core
+  labels:
+    app: advanced-rd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: advanced-rd
+  template:
+    metadata:
+      labels:
+        app: advanced-rd
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: advanced-rd
+          image: atlas/advanced-rd:latest
+          ports:
+            - containerPort: 8104
+              name: http
+          env:
+            - name: PORT
+              value: "8104"
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: atlas-common-config
+                  key: KAFKA_BROKERS
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8104
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: advanced-rd
+  namespace: atlas-core
+spec:
+  selector:
+    app: advanced-rd
+  ports:
+    - name: http
+      port: 8104
+      targetPort: 8104
+---
+# Security Certification
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-certification
+  namespace: atlas-core
+  labels:
+    app: security-certification
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-certification
+  template:
+    metadata:
+      labels:
+        app: security-certification
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: security-certification
+          image: atlas/security-certification:latest
+          ports:
+            - containerPort: 8105
+              name: http
+          env:
+            - name: PORT
+              value: "8105"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8105
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-certification
+  namespace: atlas-core
+spec:
+  selector:
+    app: security-certification
+  ports:
+    - name: http
+      port: 8105
+      targetPort: 8105
+---
+# Continuous Improvement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: continuous-improvement
+  namespace: atlas-core
+  labels:
+    app: continuous-improvement
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: continuous-improvement
+  template:
+    metadata:
+      labels:
+        app: continuous-improvement
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: continuous-improvement
+          image: atlas/continuous-improvement:latest
+          ports:
+            - containerPort: 8106
+              name: http
+          env:
+            - name: PORT
+              value: "8106"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8106
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: continuous-improvement
+  namespace: atlas-core
+spec:
+  selector:
+    app: continuous-improvement
+  ports:
+    - name: http
+      port: 8106
+      targetPort: 8106

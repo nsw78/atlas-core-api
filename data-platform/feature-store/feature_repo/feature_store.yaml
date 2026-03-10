@@ -1,0 +1,15 @@
+project: atlas_intelligence
+registry: s3://atlas-ml-artifacts/feast/registry.db
+provider: local
+online_store:
+  type: redis
+  connection_string: redis.atlas-infra:6379,db=2
+offline_store:
+  type: contrib.postgres_offline_store.postgres
+  host: postgres.atlas-infra
+  port: 5432
+  database: atlas
+  db_schema: public
+  user: atlas
+  password: ${POSTGRES_PASSWORD}
+entity_key_serialization_version: 2

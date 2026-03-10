@@ -1,0 +1,13 @@
+{{- range $key, $ns := .Values.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns }}
+  labels:
+    {{- include "atlas-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $key }}
+    {{- if $.Values.istio.enabled }}
+    istio-injection: enabled
+    {{- end }}
+{{- end }}

@@ -1,0 +1,31 @@
+apiVersion: v2
+name: atlas-core
+description: ATLAS Core API - Enterprise Trade Intelligence & Risk Assessment Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/atlas-core/atlas-core-api
+sources:
+  - https://github.com/atlas-core/atlas-core-api
+maintainers:
+  - name: ATLAS Core Team
+    email: platform@atlas-core.io
+keywords:
+  - trade-intelligence
+  - risk-assessment
+  - sanctions-screening
+  - compliance
+  - fintech
+dependencies:
+  - name: postgresql
+    version: "13.2.24"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.6.1"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: kafka
+    version: "26.6.2"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: kafka.enabled
