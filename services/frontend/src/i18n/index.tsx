@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 
 import en from "./locales/en.json";
 import ptBR from "./locales/pt-BR.json";
@@ -19,11 +19,17 @@ const translations: Record<Locale, Translations> = {
 
 const localeNames: Record<Locale, string> = {
   en: "English",
-  "pt-BR": "Portugues (BR)",
-  es: "Espanol",
+  "pt-BR": "Português (BR)",
+  es: "Español",
 };
 
 const localeFlags: Record<Locale, string> = {
+  en: "🇺🇸",
+  "pt-BR": "🇧🇷",
+  es: "🇪🇸",
+};
+
+const localeFlagCodes: Record<Locale, string> = {
   en: "US",
   "pt-BR": "BR",
   es: "ES",
@@ -65,6 +71,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem(STORAGE_KEY, newLocale);
+    // Update HTML lang attribute
+    document.documentElement.lang = newLocale === "pt-BR" ? "pt" : newLocale;
   }, []);
 
   const t = useCallback(
@@ -108,7 +116,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 
   const localeName = useCallback((loc: Locale) => localeNames[loc], []);
-  const localeFlag = useCallback((loc: Locale) => localeFlags[loc], []);
+  const localeFlag = useCallback((loc: Locale) => localeFlagCodes[loc], []);
 
   // Prevent hydration mismatch
   if (!mounted) {
@@ -139,28 +147,58 @@ export function useI18n() {
   return context;
 }
 
-// Language Switcher Component
+// Premium Language Switcher Component
 export function LanguageSwitcher({ className }: { className?: string }) {
-  const { locale, setLocale, locales, localeName, localeFlag } = useI18n();
+  const { locale, setLocale, locales } = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className={`relative ${className ?? ""}`}>
-      <select
-        value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
-        className="appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+    <div className={`relative ${className ?? ""}`} ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.06] hover:border-white/[0.1] transition-all text-sm"
       >
-        {locales.map((loc) => (
-          <option key={loc} value={loc}>
-            {localeFlag(loc)} {localeName(loc)}
-          </option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="text-base leading-none">{localeFlags[locale]}</span>
+        <span className="text-gray-300 font-medium text-xs hidden sm:inline">{localeFlagCodes[locale]}</span>
+        <svg className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 glass-elevated rounded-xl shadow-2xl z-50 animate-scale-in overflow-hidden py-1">
+          {locales.map((loc) => (
+            <button
+              key={loc}
+              onClick={() => { setLocale(loc); setIsOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                locale === loc
+                  ? "bg-blue-500/10 text-blue-400"
+                  : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <span className="text-base leading-none">{localeFlags[loc]}</span>
+              <span className="font-medium">{localeNames[loc]}</span>
+              {locale === loc && (
+                <svg className="w-4 h-4 ml-auto text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { type HTMLAttributes, forwardRef } from "react";
 import { cn } from "@/utils";
+import { useI18n } from "@/i18n";
 import type { RiskLevel, ServiceStatus } from "@/types";
 
 type BadgeVariant = "default" | "success" | "warning" | "danger" | "info" | "violet";
@@ -41,35 +42,37 @@ Badge.displayName = "Badge";
 
 // Risk Level Badge
 export function RiskBadge({ level }: { level: RiskLevel }) {
-  const config: Record<RiskLevel, { variant: BadgeVariant; label: string; dot: string }> = {
-    low: { variant: "success", label: "Low", dot: "bg-emerald-400" },
-    medium: { variant: "warning", label: "Medium", dot: "bg-amber-400" },
-    high: { variant: "danger", label: "High", dot: "bg-red-400" },
-    critical: { variant: "danger", label: "Critical", dot: "bg-red-500" },
+  const { t } = useI18n();
+  const config: Record<RiskLevel, { variant: BadgeVariant; labelKey: string; dot: string }> = {
+    low: { variant: "success", labelKey: "badges.low", dot: "bg-emerald-400" },
+    medium: { variant: "warning", labelKey: "badges.medium", dot: "bg-amber-400" },
+    high: { variant: "danger", labelKey: "badges.high", dot: "bg-red-400" },
+    critical: { variant: "danger", labelKey: "badges.critical", dot: "bg-red-500" },
   };
 
-  const { variant, label, dot } = config[level];
+  const { variant, labelKey, dot } = config[level];
   return (
     <Badge variant={variant} pulse={level === "critical"}>
       <span className={cn("w-1.5 h-1.5 rounded-full", dot)} />
-      {label}
+      {t(labelKey)}
     </Badge>
   );
 }
 
 // Service Status Badge
 export function StatusBadge({ status }: { status: ServiceStatus }) {
-  const config: Record<ServiceStatus, { variant: BadgeVariant; label: string; dot: string }> = {
-    operational: { variant: "success", label: "Operational", dot: "bg-emerald-400" },
-    degraded: { variant: "warning", label: "Degraded", dot: "bg-amber-400" },
-    offline: { variant: "danger", label: "Offline", dot: "bg-red-400" },
+  const { t } = useI18n();
+  const config: Record<ServiceStatus, { variant: BadgeVariant; labelKey: string; dot: string }> = {
+    operational: { variant: "success", labelKey: "badges.operational", dot: "bg-emerald-400" },
+    degraded: { variant: "warning", labelKey: "badges.degraded", dot: "bg-amber-400" },
+    offline: { variant: "danger", labelKey: "badges.offline", dot: "bg-red-400" },
   };
 
-  const { variant, label, dot } = config[status];
+  const { variant, labelKey, dot } = config[status];
   return (
     <Badge variant={variant}>
       <span className={cn("w-1.5 h-1.5 rounded-full", dot)} />
-      {label}
+      {t(labelKey)}
     </Badge>
   );
 }

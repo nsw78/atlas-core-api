@@ -376,10 +376,10 @@ export default function GeospatialPage() {
                       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>-30 days</span>
-                      <span>-7 days</span>
-                      <span>-24h</span>
-                      <span className="text-blue-400 font-medium">Now</span>
+                      <span>{t("geospatial.timeline30d")}</span>
+                      <span>{t("geospatial.timeline7d")}</span>
+                      <span>{t("geospatial.timeline24h")}</span>
+                      <span className="text-blue-400 font-medium">{t("time.now")}</span>
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" className="gap-1">
@@ -483,16 +483,16 @@ export default function GeospatialPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <p className="text-xs text-gray-500">Name</p>
+                    <p className="text-xs text-gray-500">{t("common.name")}</p>
                     <p className="text-sm text-white font-medium">{selectedAsset.name}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Type</p>
+                      <p className="text-xs text-gray-500">{t("common.type")}</p>
                       <p className="text-sm text-gray-300">{selectedAsset.type}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Location</p>
+                      <p className="text-xs text-gray-500">{t("geospatial.coordinates")}</p>
                       <p className="text-sm text-gray-300">{selectedAsset.location}</p>
                     </div>
                   </div>

@@ -149,7 +149,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                   <div className="py-1">
                     <button className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/[0.04] flex items-center gap-2.5 transition-colors">
                       <SettingsIcon className="w-4 h-4 text-gray-500" />
-                      Settings
+                      {t("common.settings")}
                     </button>
                     <button
                       onClick={() => { setShowUserMenu(false); logout(); }}

@@ -118,7 +118,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-white/[0.06]" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="px-3 bg-gray-900/80 text-gray-600 font-medium">or</span>
+                  <span className="px-3 bg-gray-900/80 text-gray-600 font-medium">{t("auth.or")}</span>
                 </div>
               </div>
 
@@ -128,7 +128,7 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 className="w-full py-2.5"
               >
-                Demo Access (admin/Admin@2024)
+                {t("auth.demoAccess")} ({t("auth.demoCredentials")})
               </Button>
             </div>
 
@@ -136,8 +136,7 @@ export default function LoginPage() {
               <div className="flex items-start gap-3">
                 <LockIcon className="w-4 h-4 text-blue-400/60 mt-0.5 shrink-0" />
                 <p className="text-[11px] text-gray-500 leading-relaxed">
-                  This system is for authorized personnel only. All access is
-                  monitored and logged in compliance with security policies.
+                  {t("auth.securityNotice")}
                 </p>
               </div>
             </div>
@@ -145,7 +144,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-[11px] text-gray-700 mt-6 font-medium">
-          Protected by enterprise-grade security. GDPR & LGPD compliant.
+          {t("auth.complianceNotice")}
         </p>
       </div>
     </div>

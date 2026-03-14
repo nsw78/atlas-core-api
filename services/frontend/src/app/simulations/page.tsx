@@ -259,7 +259,7 @@ export default function SimulationsPage() {
                   <h3 className="text-base font-semibold text-white mb-2">{template.label}</h3>
                   <p className="text-xs text-gray-400 leading-relaxed">{template.description}</p>
                   <div className="mt-4 flex items-center gap-1 text-xs text-gray-500">
-                    <span>{template.parameters.length} parameters</span>
+                    <span>{template.parameters.length} {t("simulations.parameters")}</span>
                   </div>
                 </button>
               ))}

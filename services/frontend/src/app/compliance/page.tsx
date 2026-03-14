@@ -65,7 +65,7 @@ export default function CompliancePage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t("compliance.auditLog")}</CardTitle>
               <Button variant="secondary" size="sm">
-                Export
+                {t("common.export")}
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -74,16 +74,16 @@ export default function CompliancePage() {
                   <thead>
                     <tr className="border-b border-gray-800">
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
-                        Timestamp
+                        {t("compliance.timestamp")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
-                        User
+                        {t("compliance.user")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
-                        Action
+                        {t("compliance.action")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
-                        Resource
+                        {t("compliance.resource")}
                       </th>
                     </tr>
                   </thead>
@@ -156,18 +156,18 @@ export default function CompliancePage() {
           {/* Data Governance */}
           <Card>
             <CardHeader>
-              <CardTitle>Data Governance</CardTitle>
+              <CardTitle>{t("compliance.dataGovernance")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-gray-800/50 rounded-lg">
                 <div className="flex items-center gap-3 mb-2">
                   <ShieldIcon className="w-5 h-5 text-emerald-400" />
                   <span className="text-sm font-medium text-white">
-                    Data Encryption
+                    {t("compliance.dataEncryption")}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400">
-                  All data encrypted at rest (AES-256) and in transit (TLS 1.3)
+                  {t("compliance.encryptionDesc")}
                 </p>
               </div>
 
@@ -175,12 +175,11 @@ export default function CompliancePage() {
                 <div className="flex items-center gap-3 mb-2">
                   <ClockIcon className="w-5 h-5 text-blue-400" />
                   <span className="text-sm font-medium text-white">
-                    Retention Policy
+                    {t("compliance.retentionPolicy")}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400">
-                  Audit logs retained for 7 years. User data per GDPR
-                  requirements.
+                  {t("compliance.retentionDesc")}
                 </p>
               </div>
 
@@ -188,25 +187,24 @@ export default function CompliancePage() {
                 <div className="flex items-center gap-3 mb-2">
                   <UserIcon className="w-5 h-5 text-amber-400" />
                   <span className="text-sm font-medium text-white">
-                    Access Control
+                    {t("compliance.accessControl")}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400">
-                  Role-based (RBAC) and attribute-based (ABAC) access control
-                  enforced.
+                  {t("compliance.accessControlDesc")}
                 </p>
               </div>
 
               <div className="pt-4 border-t border-gray-800">
                 <h4 className="text-sm font-medium text-white mb-3">
-                  Quick Actions
+                  {t("compliance.quickActions")}
                 </h4>
                 <div className="space-y-2">
                   <Button variant="secondary" size="sm" className="w-full">
-                    Request Data Export
+                    {t("compliance.requestDataExport")}
                   </Button>
                   <Button variant="ghost" size="sm" className="w-full">
-                    View Privacy Policy
+                    {t("compliance.viewPrivacyPolicy")}
                   </Button>
                 </div>
               </div>

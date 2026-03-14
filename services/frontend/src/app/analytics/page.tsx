@@ -222,13 +222,13 @@ export default function AnalyticsPage() {
               }`}
             >
               <div className={`w-1.5 h-1.5 rounded-full ${autoRefresh.isActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
-              {autoRefresh.isActive ? `Auto ${autoRefresh.countdown}s` : t("analytics.autoRefresh")}
+              {autoRefresh.isActive ? `${t("analytics.auto")} ${autoRefresh.countdown}s` : t("analytics.autoRefresh")}
             </button>
 
             <button
               onClick={autoRefresh.manualRefresh}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
-              title="Refresh now"
+              title={t("analytics.refreshNow")}
             >
               <RefreshIcon className="w-4 h-4" />
             </button>
@@ -298,11 +298,11 @@ export default function AnalyticsPage() {
                         contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
                         labelStyle={{ color: "#9ca3af" }}
                       />
-                      <Area type="monotone" dataKey="total" stroke="#3b82f6" fill="url(#aGradTotal)" strokeWidth={2} name="Total" />
+                      <Area type="monotone" dataKey="total" stroke="#3b82f6" fill="url(#aGradTotal)" strokeWidth={2} name={t("analytics.total")} />
                       {threatType === "all" && (
                         <>
-                          <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="url(#aGradCyber)" strokeWidth={1.5} name="Cyber" />
-                          <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="url(#aGradGeo)" strokeWidth={1.5} name="Geopolitical" />
+                          <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="url(#aGradCyber)" strokeWidth={1.5} name={t("analytics.cyber")} />
+                          <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="url(#aGradGeo)" strokeWidth={1.5} name={t("analytics.geopolitical")} />
                         </>
                       )}
                     </AreaChart>
@@ -371,7 +371,7 @@ export default function AnalyticsPage() {
                       <Tooltip
                         contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
                       />
-                      <Bar dataKey="incidents" name="Incidents" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="incidents" name={t("analytics.incidents")} radius={[0, 4, 4, 0]}>
                         {filteredRegions.map((entry, i) => (
                           <Cell
                             key={i}
@@ -394,8 +394,8 @@ export default function AnalyticsPage() {
                       <PolarGrid stroke="#374151" />
                       <PolarAngleAxis dataKey="category" stroke="#9ca3af" fontSize={10} />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#4b5563" fontSize={9} />
-                      <Radar name="Incidents" dataKey="severity" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                      <Radar name="Share %" dataKey="percentage" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
+                      <Radar name={t("analytics.incidents")} dataKey="severity" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                      <Radar name={t("analytics.sharePercent")} dataKey="percentage" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
                       <Legend wrapperStyle={{ fontSize: "11px" }} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
@@ -426,11 +426,11 @@ export default function AnalyticsPage() {
                     contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name="Cyber" />
-                  <Area type="monotone" dataKey="infrastructure" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} name="Infrastructure" />
-                  <Area type="monotone" dataKey="energy" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} strokeWidth={2} name="Energy" />
-                  <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} name="Geopolitical" />
-                  <Area type="monotone" dataKey="climate" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} strokeWidth={2} name="Climate" />
+                  <Area type="monotone" dataKey="cyber" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name={t("analytics.cyber")} />
+                  <Area type="monotone" dataKey="infrastructure" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} name={t("analytics.infrastructure")} />
+                  <Area type="monotone" dataKey="energy" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} strokeWidth={2} name={t("analytics.energy")} />
+                  <Area type="monotone" dataKey="geopolitical" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} name={t("analytics.geopolitical")} />
+                  <Area type="monotone" dataKey="climate" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} strokeWidth={2} name={t("analytics.climate")} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
