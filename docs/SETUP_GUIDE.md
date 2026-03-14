@@ -71,7 +71,7 @@ docker compose -f docker-compose.mvp.yml ps
 | Frontend | http://localhost:3000 | N/A |
 | API Gateway | http://localhost:8080 | N/A |
 | Prometheus | http://localhost:9090 | N/A |
-| Grafana | http://localhost:3001 | admin / admin |
+| Grafana | http://localhost:3005 | admin / admin |
 | PostgreSQL | localhost:5432 | atlas / atlas_dev |
 | Redis | localhost:6379 | N/A |
 
@@ -210,7 +210,7 @@ docker compose -f docker-compose.mvp.yml down -v
 
 ### Grafana Dashboard
 
-1. Acesse http://localhost:3001
+1. Acesse http://localhost:3005
 2. Login: admin / admin
 3. Adicionar datasource Prometheus (localhost:9090)
 4. Importar dashboard "Node Exporter" (ID: 1860)

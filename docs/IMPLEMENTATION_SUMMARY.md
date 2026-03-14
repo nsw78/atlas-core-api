@@ -218,7 +218,7 @@ docker compose -f docker-compose.mvp.yml up -d
 | **Frontend** | http://localhost:3000 |
 | **API Gateway** | http://localhost:8080 |
 | **Prometheus** | http://localhost:9090 |
-| **Grafana** | http://localhost:3001 (admin/admin) |
+| **Grafana** | http://localhost:3005 (admin/admin) |
 | **PostgreSQL** | localhost:5432 (atlas/atlas_dev) |
 | **Redis** | localhost:6379 |
 

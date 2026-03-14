@@ -59,6 +59,24 @@ All domain events in the ATLAS platform are published to Apache Kafka with struc
 | `TradeRestrictionFound` | `atlas.trade.restriction_found` | Sanctions Screening | Trade restriction identified for entity/country pair |
 | `TradeAdvisoryIssued` | `atlas.trade.advisory_issued` | Sanctions Screening | New trade advisory generated from intelligence analysis |
 
+## Implemented Event Producers
+
+| Event Type | Topic | Producer | Payload |
+|------------|-------|----------|---------|
+| `SimulationCompleted` | `atlas.simulations.completed` | Scenario Simulation | simulation_id, scenario_name, status, risk_score, timestamp |
+| `NewsIngested` | `atlas.news.ingested` | News Aggregator | article_count, source, timestamp |
+| `OSINTSignalCreated` | `atlas.osint.signal` | News Aggregator | signal_id, severity, signal_type, title, timestamp |
+| `ComplianceScanCompleted` | `atlas.compliance.scan_completed` | Compliance Automation | scan_id, policy_id, status, score, findings_count, timestamp |
+| `WargamingMoveSubmitted` | `atlas.wargaming.move_submitted` | War Gaming | game_id, move_id, team, turn_number, timestamp |
+
+## Central Event Consumer
+
+The audit-logging service has a Kafka consumer (`kafka_consumer.py`) that subscribes to ALL `atlas.*` topics.
+
+- **Consumer group**: `atlas-audit-logging`
+- Each event is persisted to the `audit_logs` table with the topic as `event_type`
+- Includes exponential backoff retry on connection failures
+
 ## Partitioning Strategy
 
 | Event Category | Partition Key | Rationale |
@@ -81,3 +99,4 @@ All domain events in the ATLAS platform are published to Apache Kafka with struc
 | `notification-service` | `atlas.alert.triggered`, `atlas.compliance.violation` | Email/Slack notifications |
 | `risk-enrichment` | `atlas.osint.collected`, `atlas.nlp.analyzed`, `atlas.graph.updated` | Risk score recalculation |
 | `sanctions-monitor` | `atlas.sanctions.*`, `atlas.trade.*` | Sanctions compliance monitoring and alerting |
+| `atlas-audit-sink` | `atlas.*` | Central event sink to audit_logs table |

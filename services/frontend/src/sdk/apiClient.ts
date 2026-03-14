@@ -1,7 +1,7 @@
 // ATLAS Unified API Client
 // Single source of truth for all HTTP communication with the backend.
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1`;
 const AUTH_STORAGE_KEY = 'atlas-auth';
 const DEFAULT_TIMEOUT_MS = 30_000;
 

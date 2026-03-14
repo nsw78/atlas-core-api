@@ -101,7 +101,7 @@ Você verá o dashboard do ATLAS!
 | atlas-performance-optimization| http://localhost:8102   |
 | atlas-federated-learning     | http://localhost:8099   |
 | atlas-data-residency         | http://localhost:8098   |
-| atlas-grafana                | http://localhost:3001   |
+| atlas-grafana                | http://localhost:3005   |
 | atlas-xai-service            | http://localhost:8090   |
 | atlas-multi-region           | http://localhost:8097   |
 | atlas-ml-infrastructure      | http://localhost:8087   |
@@ -250,7 +250,7 @@ Certifique-se de que o Docker Desktop está iniciado:
 
 ### Grafana Dashboard
 
-1. Acesse http://localhost:3001
+1. Acesse http://localhost:3005
 2. Login: `admin` / Senha: `admin`
 3. Configure a fonte de dados Prometheus:
    - URL: `http://prometheus:9090`
@@ -285,12 +285,12 @@ atlas-network (Docker Network)
 ├── api-gateway (Go)            :8080
 ├── iam-service (Go)             :8081
 ├── risk-assessment (Go)        :8082
-├── news-aggregator (Python)     :8083
+├── news-aggregator (Python)     :8113
 ├── postgres                     :5432
 ├── redis                        :6379
 ├── kafka                        :9092
 ├── prometheus                   :9090
-└── grafana                      :3001
+└── grafana                      :3005
 ```
 
 ---

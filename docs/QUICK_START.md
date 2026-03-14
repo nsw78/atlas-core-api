@@ -13,7 +13,7 @@ cd c:\Users\t.nwa_tfsports\Documents\Projetos_IA\atlas-core-api
 # 3. Acesse
 # Frontend: http://localhost:3000
 # API: http://localhost:8080
-# Grafana: http://localhost:3001 (admin/admin)
+# Grafana: http://localhost:3005 (admin/admin)
 ```
 
 ---
@@ -135,7 +135,7 @@ pnpm type-check
 | Auth | NextAuth.js | - | Autenticação |
 | Real-time | Socket.io | - | Live updates |
 | Monitoring | Prometheus | 9090 | Métricas |
-| Dashboard | Grafana | 3001 | Visualização |
+| Dashboard | Grafana | 3005 | Visualização |
 
 ---
 

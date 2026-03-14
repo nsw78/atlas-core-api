@@ -316,7 +316,7 @@ histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 
 ### Grafana Dashboards
 ```
-http://localhost:3001
+http://localhost:3005
 User: admin
 Pass: admin
 ```

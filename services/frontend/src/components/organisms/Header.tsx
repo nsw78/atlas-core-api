@@ -135,7 +135,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </div>
                 <div className="hidden md:block text-left">
                   <span className="text-sm text-white font-medium block leading-tight">{user.username || "User"}</span>
-                  <span className="text-[10px] text-gray-500 capitalize">{user.roles?.[0] || "analyst"}</span>
+                  <span className="text-[10px] text-gray-500 capitalize">{typeof user.roles?.[0] === 'string' ? user.roles[0] : "analyst"}</span>
                 </div>
                 <ChevronDownIcon className="w-3.5 h-3.5 text-gray-500" />
               </button>

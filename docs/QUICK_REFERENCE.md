@@ -18,7 +18,7 @@ docker-compose down
 
 - **Frontend**: http://localhost:3000
 - **API Gateway**: http://localhost:8080
-- **Grafana**: http://localhost:3001 (admin/admin)
+- **Grafana**: http://localhost:3005 (admin/admin)
 - **Prometheus**: http://localhost:9090
 
 ## 🔌 Endpoints Principais

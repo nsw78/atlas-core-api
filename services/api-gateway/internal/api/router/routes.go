@@ -368,6 +368,56 @@ func SetupRoutes(r *gin.RouterGroup, cfg *config.Config, logger *zap.Logger) {
 		improvement.GET("/recommendations", proxy.forward("continuous-improvement", "/api/v1/improvement/recommendations"))
 	}
 
+	// Reports
+	reports := r.Group("/reports")
+	{
+		reports.GET("", proxy.forward("nlp-service", "/api/v1/reports"))
+		reports.POST("", proxy.forward("nlp-service", "/api/v1/reports"))
+		reports.GET("/templates", proxy.forward("nlp-service", "/api/v1/reports/templates"))
+		reports.POST("/schedules", proxy.forward("nlp-service", "/api/v1/reports/schedules"))
+		reports.GET("/:id", proxy.forward("nlp-service", "/api/v1/reports/:id"))
+	}
+
+	// Threats
+	threats := r.Group("/threats")
+	{
+		threats.GET("", proxy.forward("news-aggregator", "/api/v1/threats"))
+		threats.GET("/actors", proxy.forward("news-aggregator", "/api/v1/threats/actors"))
+		threats.GET("/iocs", proxy.forward("news-aggregator", "/api/v1/threats/iocs"))
+		threats.GET("/feeds", proxy.forward("news-aggregator", "/api/v1/threats/feeds"))
+	}
+
+	// Analytics
+	analytics := r.Group("/analytics")
+	{
+		analytics.POST("/metrics", proxy.forward("risk-assessment", "/api/v1/analytics/metrics"))
+		analytics.POST("/timeseries", proxy.forward("risk-assessment", "/api/v1/analytics/timeseries"))
+		analytics.POST("/breakdown", proxy.forward("risk-assessment", "/api/v1/analytics/breakdown"))
+		analytics.POST("/heatmap", proxy.forward("risk-assessment", "/api/v1/analytics/heatmap"))
+	}
+
+	// Settings
+	settings := r.Group("/settings")
+	{
+		settings.GET("/user", proxy.forward("iam-service", "/api/v1/settings/user"))
+		settings.PUT("/user", proxy.forward("iam-service", "/api/v1/settings/user"))
+		settings.GET("/system", proxy.forward("iam-service", "/api/v1/settings/system"))
+	}
+
+	// Platform Overview (alias for overview endpoints, used by frontend SDK)
+	platform := r.Group("/platform")
+	{
+		platform.GET("/status", getPlatformStatus(cfg))
+		platform.GET("/signals", proxy.forward("news-aggregator", "/api/v1/osint/signals"))
+		platform.GET("/kpis", proxy.forward("risk-assessment", "/api/v1/analytics/kpis"))
+	}
+
+	// Users (profile)
+	users := r.Group("/users")
+	{
+		users.GET("/me", proxy.forward("iam-service", "/api/v1/users/me"))
+	}
+
 	logger.Info("All proxy routes configured", zap.Int("registered_services", len(cfg.Services.Registry)))
 }
 

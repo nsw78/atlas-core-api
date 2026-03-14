@@ -132,7 +132,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	iamResp, err := httpClient.Do(iamReq)
 	if err != nil {
-		h.logger.Error("IAM service unreachable", zap.Error(err))
+		h.logger.Warn("IAM service unreachable, checking development fallback", zap.Error(err))
+
+		// Development fallback: allow login with default credentials when IAM is down
+		if h.config.Environment != "production" && req.Username == "admin" && req.Password == "Admin@2024" {
+			h.devFallbackLogin(c)
+			return
+		}
+
 		apiErr := types.NewAPIError(types.ErrInternalServerError, "Authentication service unavailable")
 		apiErr.TraceID = c.GetString("request_id")
 		c.JSON(http.StatusServiceUnavailable, types.NewErrorResponse(apiErr, c.Request.URL.Path))
@@ -207,33 +214,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	refreshToken := h.generateRefreshToken()
 
-	// Build role responses from the IAM roles list
-	roleResponses := make([]dto.RoleResponse, 0, len(userData.Roles))
-	for _, r := range userData.Roles {
-		roleResponses = append(roleResponses, dto.RoleResponse{Name: r})
-	}
-
-	response := dto.LoginResponse{
-		AccessToken:  token,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int(h.config.Auth.JWTExpiration.Seconds()),
-		User: dto.UserResponse{
-			ID:        userData.ID,
-			Username:  userData.Username,
-			Email:     userData.Email,
-			Status:    "active",
-			Roles:     roleResponses,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+	// Return roles as plain strings to avoid React rendering issues with objects
+	c.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "Login successful",
+		"trace_id": c.GetString("request_id"),
+		"data": gin.H{
+			"access_token":  token,
+			"refresh_token": refreshToken,
+			"token_type":    "Bearer",
+			"expires_in":    int(h.config.Auth.JWTExpiration.Seconds()),
+			"user": gin.H{
+				"id":          userData.ID,
+				"username":    userData.Username,
+				"email":       userData.Email,
+				"status":      "active",
+				"roles":       userData.Roles,
+				"permissions": permissions,
+			},
 		},
-	}
-
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Code:    http.StatusOK,
-		Message: "Login successful",
-		Data:    response,
-		TraceID: c.GetString("request_id"),
 	})
 }
 
@@ -522,6 +521,48 @@ func (h *AuthHandler) generateRefreshToken() string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, _ := token.SignedString([]byte(h.config.Auth.JWTSecret))
 	return tokenString
+}
+
+// devFallbackLogin generates a gateway token with default admin credentials.
+// Only used in non-production when the IAM service is unreachable.
+func (h *AuthHandler) devFallbackLogin(c *gin.Context) {
+	h.logger.Warn("Using development fallback login (IAM unavailable)")
+
+	permissions := derivePermissions([]string{"admin"})
+	token, err := h.generateToken("dev-admin-001", "admin", "admin@atlas.com", []string{"admin"}, permissions)
+	if err != nil {
+		apiErr := types.NewAPIError(types.ErrInternalServerError, "Failed to generate token")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusInternalServerError, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+
+	if h.cache != nil {
+		attemptsKey := loginAttemptsPrefix + c.ClientIP()
+		h.cache.Delete(c.Request.Context(), attemptsKey)
+	}
+
+	refreshToken := h.generateRefreshToken()
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":     http.StatusOK,
+		"message":  "Login successful (development mode)",
+		"trace_id": c.GetString("request_id"),
+		"data": gin.H{
+			"access_token":  token,
+			"refresh_token": refreshToken,
+			"token_type":    "Bearer",
+			"expires_in":    int(h.config.Auth.JWTExpiration.Seconds()),
+			"user": gin.H{
+				"id":          "dev-admin-001",
+				"username":    "admin",
+				"email":       "admin@atlas.com",
+				"status":      "active",
+				"roles":       []string{"admin"},
+				"permissions": permissions,
+			},
+		},
+	})
 }
 
 // validateLoginRequest validates login request fields

@@ -239,7 +239,7 @@ Serviços principais:
 - API Gateway: `http://localhost:8080`
 - MLflow: `http://localhost:5000`
 - Neo4j Browser: `http://localhost:7474`
-- Grafana: `http://localhost:3001` (admin/admin)
+- Grafana: `http://localhost:3005` (admin/admin)
 
 ---
 

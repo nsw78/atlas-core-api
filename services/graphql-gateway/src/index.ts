@@ -38,21 +38,22 @@ const subgraphs: SubgraphConfig[] = [
 // ---------------------------------------------------------------------------
 
 class AuthenticatedDataSource extends RemoteGraphQLDataSource<GatewayContext> {
-  override willSendRequest({
-    request,
-    context,
-  }: {
-    request: { http?: { headers: { set(key: string, value: string): void } } };
-    context: GatewayContext;
-  }): void {
+  override willSendRequest(options: any): void {
+    const { request, context } = options;
+    if (!context || !request) return;
+
     if (context.user) {
       request.http?.headers.set('x-user-id', context.user.sub);
       request.http?.headers.set('x-user-email', context.user.email);
-      request.http?.headers.set('x-user-roles', context.user.roles.join(','));
-      request.http?.headers.set('x-tenant-id', context.user.tenantId);
+      request.http?.headers.set('x-user-roles', context.user.roles?.join(',') ?? '');
+      request.http?.headers.set('x-tenant-id', context.user.tenantId ?? '');
     }
-    request.http?.headers.set('x-request-id', context.requestId);
-    request.http?.headers.set('x-correlation-id', context.correlationId);
+    if (context.requestId) {
+      request.http?.headers.set('x-request-id', context.requestId);
+    }
+    if (context.correlationId) {
+      request.http?.headers.set('x-correlation-id', context.correlationId);
+    }
   }
 }
 

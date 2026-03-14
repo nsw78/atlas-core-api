@@ -413,10 +413,10 @@ export const compliance = {
     api.get<ComplianceStatus[]>('/compliance/status'),
 
   getPolicies: (params?: PaginationParams) =>
-    api.get<PaginatedList<CompliancePolicy>>('/compliance/policies', params),
+    api.get<PaginatedList<CompliancePolicy>>('/compliance/automation/policies', params),
 
   runScan: (policyId: string) =>
-    api.post<ComplianceScanResult>(`/compliance/policies/${policyId}/scan`),
+    api.post<ComplianceScanResult>('/compliance/automation/scan', { policy_id: policyId }),
 };
 
 // ============================================================================
@@ -593,13 +593,13 @@ export const graph = {
     api.get<GraphRelationship[]>(`/graph/entities/${entityId}/relationships`, params),
 
   getCommunities: (params?: PaginationParams) =>
-    api.get<GraphCommunity[]>('/graph/analytics/communities', params),
+    api.get<GraphCommunity[]>('/graph/communities', params),
 
   getCentrality: (params?: { algorithm?: string; top_n?: number }) =>
-    api.get<CentralityResult[]>('/graph/analytics/centrality', params),
+    api.get<CentralityResult[]>('/graph/centrality', params),
 
   getPath: (sourceId: string, targetId: string) =>
-    api.get<GraphPath>('/graph/analytics/path', { source: sourceId, target: targetId }),
+    api.get<GraphPath>('/graph/path', { source: sourceId, target: targetId }),
 };
 
 // ============================================================================
@@ -706,13 +706,13 @@ export interface OverviewSignal {
 
 export const overview = {
   getPlatformStatus: () =>
-    api.get<PlatformStatus>('/platform/status'),
+    api.get<PlatformStatus>('/overview/status'),
 
   getKPIs: () =>
-    api.get<KPIData[]>('/platform/kpis'),
+    api.get<KPIData[]>('/overview/kpis'),
 
   getSignals: (params?: PaginationParams & { severity?: string }) =>
-    api.get<PaginatedList<OverviewSignal>>('/platform/signals', params),
+    api.get<PaginatedList<OverviewSignal>>('/overview/signals', params),
 };
 
 // ============================================================================

@@ -38,7 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(stored);
           // Validate stored user has expected shape (username, id)
           if (parsed.user && parsed.user.username && parsed.user.id && parsed.expiresAt > Date.now()) {
-            setUser(parsed.user);
+            // Normalize roles from stored session (may be objects from older format)
+            const u = parsed.user;
+            if (Array.isArray(u.roles)) {
+              u.roles = u.roles.map((r: string | { name?: string }) =>
+                typeof r === 'string' ? r : r.name || 'user'
+              );
+            } else {
+              u.roles = [];
+            }
+            if (!Array.isArray(u.permissions)) u.permissions = [];
+            setUser(u);
           } else {
             localStorage.removeItem(STORAGE_KEY);
           }
@@ -80,9 +90,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const body = await response.json();
           // Gateway wraps response in { code, message, data: { access_token, user: {...} } }
-          // IAM returns { data: {...}, access_token, ... }
           const payload = body.data || body;
-          const userData: User = payload.user || payload.data || payload;
+          const raw = payload.user || payload.data || payload;
+
+          // Normalize roles: gateway returns [{name:"admin"}], we need ["admin"]
+          let roles: string[] = [];
+          if (Array.isArray(raw.roles)) {
+            roles = raw.roles.map((r: string | { name?: string }) =>
+              typeof r === 'string' ? r : r.name || 'user'
+            );
+          }
+
+          const userData: User = {
+            id: raw.id || raw.ID || '',
+            username: raw.username || raw.Username || '',
+            email: raw.email || raw.Email || '',
+            roles,
+            permissions: raw.permissions || [],
+          };
 
           const session = {
             user: userData,

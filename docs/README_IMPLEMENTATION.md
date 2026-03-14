@@ -172,7 +172,7 @@ pnpm dev
 | Frontend | http://localhost:3000 | N/A |
 | API Gateway | http://localhost:8080 | N/A |
 | Prometheus | http://localhost:9090 | N/A |
-| Grafana | http://localhost:3001 | admin / admin |
+| Grafana | http://localhost:3005 | admin / admin |
 | PostgreSQL | localhost:5432 | atlas / atlas_dev |
 | Redis | localhost:6379 | N/A |
 
@@ -431,7 +431,7 @@ Após subir os containers, validar:
 [ ] PostgreSQL conecta (localhost:5432)
 [ ] Redis conecta (localhost:6379)
 [ ] Prometheus scrapa métricas (localhost:9090)
-[ ] Grafana admin dashboard (localhost:3001)
+[ ] Grafana admin dashboard (localhost:3005)
 [ ] Nenhum container com erro
 [ ] Startup total < 1 minuto
 [ ] Memoria < 2GB total

@@ -23,7 +23,7 @@
 [![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20PT--BR%20%7C%20ES-blue?style=flat-square)]()
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)]()
 
-**29 Microservices** | **150+ API Endpoints** | **35+ Docker Containers** | **3 Languages (i18n)**
+**33 Microservices** | **200+ API Endpoints** | **39 Docker Containers** | **3 Languages (i18n)**
 
 [Quick Start](#quick-start) | [Architecture](#architecture) | [API Manual](docs/API_MANUAL.md) | [Contributing](#contributing)
 
@@ -65,7 +65,7 @@
 
 ## Overview
 
-ATLAS is an enterprise-grade **Strategic Intelligence Platform** built for organizations requiring strategic risk analysis, scenario simulation, geospatial intelligence, and near real-time decision support. Architected with **Domain-Driven Design (DDD)**, **CQRS**, and **Event-Driven Architecture** patterns across 29 cloud-native microservices, it provides:
+ATLAS is an enterprise-grade **Strategic Intelligence Platform** built for organizations requiring strategic risk analysis, scenario simulation, geospatial intelligence, and near real-time decision support. Architected with **Domain-Driven Design (DDD)**, **CQRS**, and **Event-Driven Architecture** patterns across 33 cloud-native microservices, it provides:
 
 - **Multidimensional Risk Analysis** across Operational, Financial, Reputational, Geopolitical, and Compliance dimensions
 - **Machine Learning Pipeline** with MLflow experiment tracking, model serving, drift monitoring, and explainability (XAI)
@@ -142,7 +142,8 @@ graph TB
 | **Cache**          | Redis 7 (Alpine) with LRU eviction, AOF persistence           |
 | **Messaging**      | Apache Kafka (Confluent 7.5) with Zookeeper                   |
 | **ML/AI**          | MLflow, XGBoost, LSTM, Transformers                            |
-| **Observability**  | Prometheus, OpenTelemetry (OTLP/gRPC), Structured JSON Logging |
+| **GraphQL**        | Apollo Federation Gateway, Subgraph composition                |
+| **Observability**  | Prometheus, Grafana, OpenTelemetry, Alertmanager               |
 | **Infrastructure** | Docker, Docker Compose, Multi-stage Alpine builds              |
 
 ### Design Principles
@@ -150,7 +151,7 @@ graph TB
 - **Domain-Driven Design**: Bounded contexts with aggregates, value objects, and domain events
 - **CQRS**: Command-Query Responsibility Segregation for write/read optimization
 - **Event-Driven**: Kafka-based event streaming across all bounded contexts
-- **Config-Driven Service Registry**: 29 backend services registered via environment variables
+- **Config-Driven Service Registry**: 33 backend services registered via environment variables
 - **Circuit Breaker Pattern**: Sony gobreaker protecting all inter-service communication
 - **Graceful Degradation**: In-memory cache fallback when Redis is unavailable
 - **Zero-Trust Security**: JWT + API Key + HMAC request signing layers
@@ -272,18 +273,23 @@ graph TB
 
 ## Frontend Application
 
-The ATLAS frontend is a Next.js 14 dashboard built with TypeScript, Tailwind CSS, and Recharts. It provides a comprehensive strategic intelligence interface with dark theme design.
+The ATLAS frontend is a Next.js 14 dashboard built with TypeScript, Tailwind CSS, and Recharts. It provides a comprehensive strategic intelligence interface with a glass morphism design system and dark mode. Features 11 pages, full i18n in 3 languages (EN, PT-BR, ES), a unified SDK with typed endpoints for all 33 backend services, and React hooks (`useApiQuery`, `useApiMutation`) with graceful fallback to mock data.
 
 ### Pages & Features
 
 | Page | Route | Description |
 |------|-------|-------------|
+| **Home** | `/` | Landing page with platform overview |
+| **Login** | `/login` | Secure authentication with form validation, error handling, demo credentials |
 | **Command Center** | `/dashboard` | Real-time threat monitoring with KPI strip, incident trend charts, system status panel, active alerts with severity/category filtering, alert detail modals, and auto-refresh controls |
 | **Analytics** | `/analytics` | Multi-dimensional threat analysis with 3 tabs (Overview, Trends, Breakdown), area/bar/pie/radar charts, time range filtering, CSV/JSON export |
+| **Threats** | `/threats` | Threat event management, severity filtering, acknowledgment workflows |
 | **Geospatial** | `/geospatial` | Interactive world map with 6 configurable layers (infrastructure, energy, supply chain, maritime, risk zones, satellites), asset markers, layer opacity controls, 2D/3D/satellite modes, timeline playback |
 | **Simulations** | `/simulations` | Multi-step scenario wizard with 6+ templates, parameter configuration, Monte Carlo execution with real-time progress, impact analysis across 7 dimensions, timeline visualization, strategic recommendations |
+| **Sanctions** | `/sanctions` | OFAC/EU/UN screening, trade intelligence, watchlist management |
 | **Compliance** | `/compliance` | Regulatory tracking for GDPR, LGPD, SOC 2, ISO 27001, audit log table, data governance policies (encryption, retention, access control) |
-| **Login** | `/login` | Secure authentication with form validation, error handling, demo credentials |
+| **Reports** | `/reports` | Executive briefings, export capabilities, scheduled report generation |
+| **Settings** | `/settings` | User preferences, system configuration, API key management |
 
 ### Frontend Tech Stack
 
@@ -313,7 +319,7 @@ Full multi-language support with automatic browser detection and persistent pref
 - Language switcher in the header with flag indicators
 - LocalStorage persistence (`atlas-locale` key)
 - Fallback to English for missing keys
-- All 5 application pages fully internationalized
+- All 11 application pages fully internationalized
 
 ### Component Architecture
 
@@ -456,7 +462,7 @@ cd atlas-core-api
 cp .env.example .env
 # Edit .env with your credentials (change JWT_SECRET for production)
 
-# Start all services
+# Start all 39 containers
 docker compose up --build
 ```
 
@@ -774,45 +780,79 @@ curl http://localhost:8080/api/v1/risks/assess \
 
 ## Service Registry
 
-The API Gateway proxies requests to 29 backend services via a config-driven registry. Each service URL is configurable via environment variables.
+The API Gateway proxies requests to 33 backend services via a config-driven registry. Each service URL is configurable via environment variables. Total deployment: **39 Docker containers** (33 services + PostgreSQL, PostGIS, Redis, Kafka, Zookeeper, Prometheus, Grafana).
 
-| Service                      | Internal URL                           | Env Override                              |
-|------------------------------|----------------------------------------|-------------------------------------------|
-| IAM Service                  | `http://iam-service:8081`              | `SERVICE_IAM_SERVICE_URL`                 |
-| Risk Assessment              | `http://risk-assessment:8082`          | `SERVICE_RISK_ASSESSMENT_URL`             |
-| News Aggregator              | `http://news-aggregator:8083`          | `SERVICE_NEWS_AGGREGATOR_URL`             |
-| Ingestion Service            | `http://ingestion-service:8084`        | `SERVICE_INGESTION_SERVICE_URL`           |
-| Normalization Service        | `http://normalization-service:8085`    | `SERVICE_NORMALIZATION_SERVICE_URL`       |
-| Audit Service                | `http://audit-logging:8086`            | `SERVICE_AUDIT_SERVICE_URL`              |
-| ML Infrastructure            | `http://ml-infrastructure:8087`        | `SERVICE_ML_INFRASTRUCTURE_URL`           |
-| NLP Service                  | `http://nlp-service:8088`              | `SERVICE_NLP_SERVICE_URL`                 |
-| Graph Intelligence           | `http://graph-intelligence:8089`       | `SERVICE_GRAPH_INTELLIGENCE_URL`          |
-| XAI Service                  | `http://xai-service:8090`              | `SERVICE_XAI_SERVICE_URL`                 |
-| Model Serving                | `http://model-serving:8091`            | `SERVICE_MODEL_SERVING_URL`               |
-| Model Monitoring             | `http://model-monitoring:8092`         | `SERVICE_MODEL_MONITORING_URL`            |
-| Scenario Simulation          | `http://scenario-simulation:8093`      | `SERVICE_SCENARIO_SIMULATION_URL`         |
-| War-Gaming                   | `http://war-gaming:8094`               | `SERVICE_WAR_GAMING_URL`                  |
-| Digital Twins                | `http://digital-twins:8095`            | `SERVICE_DIGITAL_TWINS_URL`               |
-| Policy Impact                | `http://policy-impact:8096`            | `SERVICE_POLICY_IMPACT_URL`               |
-| Multi-Region                 | `http://multi-region:8097`             | `SERVICE_MULTI_REGION_URL`                |
-| Data Residency               | `http://data-residency:8098`           | `SERVICE_DATA_RESIDENCY_URL`              |
-| Federated Learning           | `http://federated-learning:8099`       | `SERVICE_FEDERATED_LEARNING_URL`          |
-| Mobile API                   | `http://mobile-api:8100`               | `SERVICE_MOBILE_API_URL`                  |
-| Compliance Automation        | `http://compliance-automation:8101`    | `SERVICE_COMPLIANCE_AUTOMATION_URL`       |
-| Performance Optimization     | `http://performance-optimization:8102` | `SERVICE_PERFORMANCE_OPTIMIZATION_URL`    |
-| Cost Optimization            | `http://cost-optimization:8103`        | `SERVICE_COST_OPTIMIZATION_URL`           |
-| Advanced R&D                 | `http://advanced-rd:8104`              | `SERVICE_ADVANCED_RD_URL`                 |
-| Security Certification       | `http://security-certification:8105`   | `SERVICE_SECURITY_CERTIFICATION_URL`      |
-| Continuous Improvement       | `http://continuous-improvement:8106`   | `SERVICE_CONTINUOUS_IMPROVEMENT_URL`      |
-| Entity Service               | `http://entity-service:8107`           | `SERVICE_ENTITY_SERVICE_URL`              |
-| Geospatial Service           | `http://geospatial-service:8108`       | `SERVICE_GEOSPATIAL_SERVICE_URL`          |
-| Intelligence Service         | `http://intelligence-service:8109`     | `SERVICE_INTELLIGENCE_SERVICE_URL`        |
+### Core Services (Go)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| api-gateway | 8080 | Central proxy, JWT auth, rate limiting, circuit breaker |
+| iam-service | 8081 | Identity management, RBAC, user CRUD |
+| risk-assessment | 8082 | Multi-dimensional risk scoring, alerts |
+| ingestion-service | 8083 | Multi-source data ingestion, Kafka producer |
+| normalization-service | 8084 | Data quality checks, normalization rules |
+| audit-logging | 8085 | Immutable audit trail, Kafka consumer |
+| graph-intelligence | 8089 | Entity resolution, community detection |
+
+### Intelligence Services (Python)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| scenario-simulation | 8093 | Monte Carlo, agent-based modeling (PostgreSQL) |
+| news-aggregator | 8113 | RSS/OSINT ingestion (Redis + PostgreSQL) |
+| sanctions-screening | 8092 | OFAC/EU/UN screening, trade intelligence |
+| nlp-service | 8094 | NER, sentiment, classification (PostgreSQL) |
+| compliance-automation | 8102 | Policy scanning, evidence generation (PostgreSQL) |
+| war-gaming | 8099 | Defensive war-gaming scenarios (PostgreSQL) |
+| digital-twins | 8100 | Entity simulation & sync |
+| policy-impact | 8101 | Policy scenario analysis |
+| advanced-rd | 8103 | Experimental threat simulation |
+| xai-service | 8098 | Explainable AI |
+
+### ML Services (Python)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| ml-infrastructure | 8115 | MLflow integration, model management |
+| model-serving | 8096 | Model inference & prediction |
+| model-monitoring | 8097 | Drift detection, performance tracking |
+| federated-learning | 8106 | Distributed ML training |
+
+### Platform Services (Python)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| multi-region | 8104 | Multi-region deployment & failover |
+| data-residency | 8105 | Geo-compliance validation |
+| mobile-api | 8107 | Mobile backend, offline sync |
+| cost-optimization | 8108 | Cost analysis & budgeting |
+| performance-optimization | 8109 | SLO analysis |
+| security-certification | 8110 | Security assessments |
+| continuous-improvement | 8111 | Metrics & feedback |
+
+### Frontend & Gateway
+
+| Service | Port | Description |
+|---------|------|-------------|
+| frontend | 3004 | Next.js 14, React 18, i18n (EN/PT-BR/ES) |
+| graphql-gateway | 4000 | Apollo Federation |
+
+### Observability
+
+| Service | Port | Description |
+|---------|------|-------------|
+| prometheus | 9091 | Metrics aggregation, 10 alert rules |
+| grafana | 3005 | 2 dashboards (overview + business) |
+| postgres-exporter | 9187 | PostgreSQL metrics |
+| redis-exporter | 9121 | Redis metrics |
 
 ---
 
 ## Database Schema
 
-### Core Tables (Migration 000001)
+**4 migration files** | **69 tables total**
+
+### Migration 000001: Core Tables (12 tables)
 
 ```sql
 -- IAM
@@ -836,7 +876,11 @@ data_sources (id UUID PK, name UNIQUE, source_type, config JSONB, is_active)
 ingestion_runs (id UUID PK, source_id FK, status, records_processed, records_failed, error_message)
 ```
 
-### Enterprise Tables (Migration 000003)
+### Migration 000002: Geospatial Tables (5 tables)
+
+PostGIS-enabled tables for spatial queries, zone management, and supply chain geographic mapping.
+
+### Migration 000003: Enterprise Tables (7 tables)
 
 ```sql
 -- API Key Management
@@ -856,9 +900,9 @@ webhook_deliveries (id UUID PK, subscription_id FK, event_type, payload JSONB, r
 feature_flags (id UUID PK, name UNIQUE, is_enabled, rules JSONB, rollout_percentage 0-100, created_by FK)
 ```
 
-### Geospatial Tables (Migration 000002)
+### Migration 000004: Platform Services (45 tables)
 
-PostGIS-enabled tables for spatial queries, zone management, and supply chain geographic mapping.
+Tables for all platform services including scenario simulation, sanctions screening, news aggregation, compliance automation, war-gaming, digital twins, policy impact, ML infrastructure, model serving, model monitoring, federated learning, multi-region, data residency, mobile API, cost optimization, performance optimization, security certification, continuous improvement, and advanced R&D.
 
 ### Seed Data
 
@@ -905,11 +949,42 @@ graph TB
 
 ### Prometheus Metrics
 
-Available at `http://localhost:9090/metrics`:
+Prometheus with **15 scrape targets** collecting metrics from all services. Available at `http://localhost:9091/metrics`.
 
 - `http_requests_total` - Total HTTP requests by method, path, status
 - `http_request_duration_seconds` - Request latency histogram
 - `http_response_size_bytes` - Response size histogram
+
+### Alert Rules (10 rules)
+
+| Rule | Condition | Severity |
+|------|-----------|----------|
+| ServiceDown | Instance unreachable for 1m | critical |
+| HighErrorRate | >5% 5xx errors over 5m | critical |
+| HighLatency | p95 latency >2s over 5m | warning |
+| DBPoolExhausted | Active connections >90% of max | critical |
+| HighMemoryUsage | Memory >85% for 5m | warning |
+| KafkaConsumerLag | Consumer lag >1000 for 5m | warning |
+| RedisHighMemory | Redis memory >80% | warning |
+| CertificateExpiry | TLS cert expires in <30d | warning |
+| HighDiskUsage | Disk >85% | warning |
+| PodRestartLoop | >3 restarts in 15m | critical |
+
+### Grafana Dashboards
+
+Available at `http://localhost:3005`:
+
+| Dashboard | Description |
+|-----------|-------------|
+| **atlas-overview** | Service health, request rates, error rates, latency percentiles, resource usage |
+| **atlas-business** | Business KPIs, risk assessments over time, simulation runs, compliance status |
+
+### Exporters
+
+| Exporter | Port | Metrics |
+|----------|------|---------|
+| postgres-exporter | 9187 | PostgreSQL connections, queries, replication, table stats |
+| redis-exporter | 9121 | Redis memory, commands, keyspace, clients |
 
 ### Structured Logging
 
@@ -1038,9 +1113,10 @@ atlas-core-api/
 |-- README.pt-BR.md                 # Portugues (Brasil)
 |-- README.es.md                    # Espanol
 |-- migrations/
-|   |-- 000001_init_schema.up.sql   # Core tables (IAM, risk, audit, ingestion)
-|   |-- 000002_geospatial.up.sql    # PostGIS extensions
-|   |-- 000003_enterprise_features.up.sql  # API keys, sessions, webhooks, flags
+|   |-- 000001_init_schema.up.sql   # Core tables (IAM, risk, audit, ingestion) - 12 tables
+|   |-- 000002_geospatial.up.sql    # PostGIS extensions - 5 tables
+|   |-- 000003_enterprise_features.up.sql  # API keys, sessions, webhooks, flags - 7 tables
+|   |-- 000004_platform_services.up.sql    # All platform service tables - 45 tables
 |
 |-- services/
 |   |-- api-gateway/                # API Gateway (Go, Gin) - :8080
@@ -1049,7 +1125,7 @@ atlas-core-api/
 |   |   |   |-- api/
 |   |   |   |   |-- handlers/       # Auth, health check handlers
 |   |   |   |   |-- middleware/      # Auth, cache, CORS, rate limit, idempotency, security
-|   |   |   |   |-- router/         # Config-driven route registry (29 services)
+|   |   |   |   |-- router/         # Config-driven route registry (33 services)
 |   |   |   |-- infrastructure/
 |   |   |       |-- cache/           # Redis + in-memory cache
 |   |   |       |-- config/          # Environment-based configuration
@@ -1088,7 +1164,7 @@ atlas-core-api/
 |   |-- graph-intelligence/         # Graph Intelligence (Go) - :8089
 |   |-- frontend/                   # Next.js 14 Dashboard - :3000
 |   |   |-- src/
-|   |   |   |-- app/                # Pages (dashboard, analytics, geospatial, simulations, compliance, login)
+|   |   |   |-- app/                # Pages (login, dashboard, analytics, threats, simulations, geospatial, sanctions, compliance, reports, settings, home)
 |   |   |   |-- components/
 |   |   |   |   |-- atoms/          # Button, Card, Badge, StatusBadge
 |   |   |   |   |-- molecules/      # KPICard, Charts, RiskHeatmap, ThreatTimeline, ServiceHealthGrid
@@ -1166,11 +1242,18 @@ All domain events are published to Kafka with guaranteed ordering per aggregate.
 | `atlas.alert.triggered` | Risk Assessment | Notification, Dashboard | Risk threshold breach |
 | `atlas.alert.resolved` | Risk Assessment | Dashboard, Audit | Alert resolution |
 | `atlas.simulation.completed` | Scenario Simulation | Dashboard, Analytics | Simulation finished |
+| `atlas.simulations.completed` | Scenario Simulation | Dashboard, Analytics | Simulation run completed with results |
 | `atlas.osint.collected` | News Aggregator | NLP, Risk | New intelligence data |
+| `atlas.news.ingested` | News Aggregator | NLP, Analytics | News article ingested from RSS/OSINT |
+| `atlas.osint.signal` | News Aggregator | Risk, Dashboard | OSINT signal detected |
 | `atlas.nlp.analyzed` | NLP Service | Risk, Graph | NLP analysis result |
 | `atlas.graph.updated` | Graph Intelligence | Risk, Dashboard | Graph topology change |
 | `atlas.compliance.violation` | Compliance | Audit, Notification | Compliance breach |
+| `atlas.compliance.scan_completed` | Compliance Automation | Audit, Dashboard | Policy scan completed with findings |
+| `atlas.wargaming.move_submitted` | War Gaming | Dashboard, Analytics | War-game move submitted |
 | `atlas.ingestion.completed` | Ingestion | Normalization, Audit | Data ingestion batch |
+
+**Central Audit Consumer**: The `audit-logging` service subscribes to all `atlas.*` topics as a central Kafka consumer, providing an immutable audit trail for every domain event across the platform.
 
 **Partitioning**: User events by `user_id`, risk events by `entity_id`, alerts by `alert_id`.
 
@@ -1345,20 +1428,24 @@ docker compose exec redis redis-cli FLUSHALL
 
 | Metric                       | Value     |
 |------------------------------|-----------|
-| Total Microservices          | 29        |
+| Total Microservices          | 33        |
 | Go Services (DDD + CQRS)    | 7         |
-| Python Services              | 17+       |
-| Frontend Pages               | 6         |
-| API Endpoints                | 150+      |
-| Kafka Event Topics           | 18        |
+| Python Services              | 22        |
+| Frontend Pages               | 11        |
+| API Endpoints                | 200+      |
+| Kafka Event Topics           | 23        |
 | Domain Aggregates            | 5         |
 | CQRS Commands                | 12        |
 | CQRS Queries                 | 10        |
-| Database Tables              | 27        |
-| Database Migrations          | 3         |
+| Database Tables              | 69        |
+| Database Migrations          | 4         |
 | Middleware Components        | 14        |
-| Service Registry Entries     | 29        |
-| Docker Containers            | 35+       |
+| Service Registry Entries     | 33        |
+| Docker Containers            | 39        |
+| Go Integration Tests         | 22        |
+| Python Integration Tests     | 51        |
+| Prometheus Alert Rules       | 10        |
+| Grafana Dashboards           | 2         |
 | Supported Languages (i18n)   | 3 (EN, PT-BR, ES) |
 | Translation Keys             | 500+      |
 | Primary Languages            | Go, Python, TypeScript |
@@ -1402,6 +1489,16 @@ docker compose exec redis redis-cli FLUSHALL
 
 ## Testing
 
+### Test Coverage
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| Go integration tests | 22 | Auth flow (login, register, refresh, token validation, RBAC) |
+| Python integration tests | 51 | Scenarios, sanctions, news, compliance, war-gaming |
+| End-to-end tests | Full workflows | Multi-service flows covering ingestion through risk assessment |
+
+### Running Tests
+
 ```bash
 # Run Go tests for a specific service
 cd services/api-gateway
@@ -1416,6 +1513,12 @@ done
 # Run Python tests
 cd services/nlp-service
 pytest -v
+
+# Run Python integration tests
+cd services/scenario-simulation && pytest tests/ -v
+cd services/sanctions-screening && pytest tests/ -v
+cd services/news-aggregator && pytest tests/ -v
+cd services/compliance-automation && pytest tests/ -v
 
 # Integration test (requires running services)
 curl -s http://localhost:8080/health | jq .

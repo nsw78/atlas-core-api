@@ -134,7 +134,7 @@ export function Sidebar() {
               {user?.username || "User"}
             </p>
             <p className="text-[11px] text-gray-500 capitalize">
-              {user?.roles?.[0] || "analyst"}
+              {typeof user?.roles?.[0] === 'string' ? user.roles[0] : "analyst"}
             </p>
           </div>
           <div className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
