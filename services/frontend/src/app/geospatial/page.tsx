@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
 import { useI18n } from "@/i18n";
+import { useApiQuery } from "@/hooks/useApi";
+import { geospatial } from "@/sdk/endpoints";
 
 // Types
 interface MapLayer {
@@ -81,6 +83,34 @@ export default function GeospatialPage() {
   const [timelinePosition, setTimelinePosition] = useState(100);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // --- API calls with fallback to mock data ---
+  const { data: apiZones, loading: zonesLoading } = useApiQuery(
+    () => geospatial.getZones(),
+    [],
+  );
+  const { data: apiSupplyChains, loading: chainsLoading } = useApiQuery(
+    () => geospatial.getSupplyChains(),
+    [],
+  );
+
+  const isLoading = zonesLoading || chainsLoading;
+
+  // Resolve zones from API to update risk zone counts
+  const resolvedZoneCount = useMemo(() => {
+    if (apiZones && Array.isArray(apiZones) && apiZones.length > 0) {
+      return apiZones.length;
+    }
+    return 234; // fallback
+  }, [apiZones]);
+
+  // Resolve supply chain routes count
+  const resolvedChainCount = useMemo(() => {
+    if (apiSupplyChains && Array.isArray(apiSupplyChains) && apiSupplyChains.length > 0) {
+      return apiSupplyChains.reduce((acc, chain) => acc + (chain.nodes?.length ?? 0), 0);
+    }
+    return 3456; // fallback
+  }, [apiSupplyChains]);
+
   const toggleLayer = useCallback((layerId: string) => {
     setLayers((prev) =>
       prev.map((layer) =>
@@ -105,6 +135,14 @@ export default function GeospatialPage() {
       subtitle={t("geospatial.subtitle")}
     >
       <div className="space-y-4">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading geospatial data...</span>
+          </div>
+        )}
+
         {/* Top Controls Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Search and Quick Filters */}
@@ -174,8 +212,8 @@ export default function GeospatialPage() {
           {[
             { label: t("geospatial.monitoredAssets"), value: "8,247", change: "+124", positive: true },
             { label: t("geospatial.activeAlerts"), value: "47", change: "-8", positive: true },
-            { label: t("geospatial.riskZones"), value: "156", change: "+3", positive: false },
-            { label: t("geospatial.shippingRoutes"), value: "892", change: "0", positive: true },
+            { label: t("geospatial.riskZones"), value: String(resolvedZoneCount), change: "+3", positive: false },
+            { label: t("geospatial.shippingRoutes"), value: String(resolvedChainCount), change: "0", positive: true },
             { label: t("geospatial.coverage"), value: "94.2%", change: "+1.2%", positive: true },
             { label: t("geospatial.dataFreshness"), value: "< 5min", change: "", positive: true },
           ].map((stat) => (

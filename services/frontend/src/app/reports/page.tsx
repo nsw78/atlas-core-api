@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useI18n } from "@/i18n";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
+import { reports as reportsApi } from "@/sdk/endpoints";
+import type { CreateReportRequest } from "@/sdk/endpoints";
 
 const reportTemplates = [
   { id: "exec-summary", icon: "📊", color: "from-blue-500/20 to-cyan-500/20", border: "border-blue-500/20" },
@@ -40,6 +43,71 @@ export default function ReportsPage() {
   const { t } = useI18n();
   const [selectedTab, setSelectedTab] = useState<"templates" | "recent" | "scheduled">("templates");
 
+  // --- API calls with fallback to mock data ---
+  const { data: apiReports, loading: reportsLoading } = useApiQuery(
+    () => reportsApi.listReports(),
+    [],
+  );
+  const { data: apiTemplates, loading: templatesLoading } = useApiQuery(
+    () => reportsApi.getTemplates(),
+    [],
+  );
+  const { mutate: createReportApi, loading: createLoading } = useApiMutation(
+    (params: CreateReportRequest) => reportsApi.createReport(params),
+  );
+
+  const isLoading = reportsLoading || templatesLoading;
+
+  // Resolve recent reports from API or fallback
+  const resolvedRecentReports = useMemo(() => {
+    if (apiReports?.items && apiReports.items.length > 0) {
+      return apiReports.items.map((r) => ({
+        id: r.id,
+        template: r.type || "executiveSummary",
+        date: r.created_at?.split("T")[0] ?? "",
+        status: r.status === "ready" ? "published" : r.status === "generating" ? "draft" : r.status,
+        pages: 0,
+        author: r.created_by,
+      }));
+    }
+    return recentReports;
+  }, [apiReports]);
+
+  // Resolve templates from API or fallback
+  const resolvedTemplates = useMemo(() => {
+    if (apiTemplates && Array.isArray(apiTemplates) && apiTemplates.length > 0) {
+      const defaultColors = [
+        { color: "from-blue-500/20 to-cyan-500/20", border: "border-blue-500/20", icon: "📊" },
+        { color: "from-red-500/20 to-orange-500/20", border: "border-red-500/20", icon: "🛡️" },
+        { color: "from-emerald-500/20 to-teal-500/20", border: "border-emerald-500/20", icon: "✅" },
+        { color: "from-amber-500/20 to-yellow-500/20", border: "border-amber-500/20", icon: "⚠️" },
+        { color: "from-violet-500/20 to-purple-500/20", border: "border-violet-500/20", icon: "📅" },
+        { color: "from-gray-500/20 to-gray-400/20", border: "border-gray-500/20", icon: "📝" },
+      ];
+      return apiTemplates.map((tmpl, i) => ({
+        id: tmpl.id,
+        icon: defaultColors[i % defaultColors.length]?.icon ?? "📊",
+        color: defaultColors[i % defaultColors.length]?.color ?? "from-blue-500/20 to-cyan-500/20",
+        border: defaultColors[i % defaultColors.length]?.border ?? "border-blue-500/20",
+        name: tmpl.name,
+        description: tmpl.description,
+        formats: tmpl.formats,
+      }));
+    }
+    return reportTemplates;
+  }, [apiTemplates]);
+
+  // Generate report via API
+  const handleGenerateReport = (templateId: string) => {
+    createReportApi({
+      name: `Report - ${new Date().toLocaleDateString()}`,
+      template_id: templateId,
+      format: "pdf",
+    }).catch(() => {
+      // API unavailable - silently fail
+    });
+  };
+
   const kpis = [
     { label: t("reports.totalReports"), value: "247", color: "text-blue-400", bg: "bg-blue-500/10" },
     { label: t("reports.thisMonth"), value: "18", color: "text-emerald-400", bg: "bg-emerald-500/10" },
@@ -56,6 +124,14 @@ export default function ReportsPage() {
   return (
     <MainLayout title={t("reports.title")} subtitle={t("reports.subtitle")}>
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading reports data...</span>
+          </div>
+        )}
+
         {/* KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {kpis.map((kpi, index) => (
@@ -95,7 +171,7 @@ export default function ReportsPage() {
         {/* Templates Grid */}
         {selectedTab === "templates" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-            {reportTemplates.map((tmpl, index) => (
+            {resolvedTemplates.map((tmpl, index) => (
               <div
                 key={tmpl.id}
                 className={`glass-card rounded-2xl p-6 border ${tmpl.border} hover:-translate-y-1 transition-all duration-300 cursor-pointer group animate-slide-up`}
@@ -110,8 +186,12 @@ export default function ReportsPage() {
                 <p className="text-xs text-gray-500 mb-4 line-clamp-2">
                   {t("reports.subtitle")}
                 </p>
-                <button className="w-full px-4 py-2 text-sm bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-colors font-medium">
-                  {t("reports.generateReport")}
+                <button
+                  onClick={() => handleGenerateReport(tmpl.id)}
+                  disabled={createLoading}
+                  className="w-full px-4 py-2 text-sm bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-colors font-medium disabled:opacity-50"
+                >
+                  {createLoading ? "Generating..." : t("reports.generateReport")}
                 </button>
               </div>
             ))}
@@ -125,7 +205,7 @@ export default function ReportsPage() {
               <h2 className="text-lg font-semibold text-white">{t("reports.recentReports")}</h2>
             </div>
             <div className="divide-y divide-white/[0.04]">
-              {recentReports.map((report) => (
+              {resolvedRecentReports.map((report) => (
                 <div key={report.id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">

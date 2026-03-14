@@ -1,0 +1,228 @@
+groups:
+  # =============================================================
+  # Service Health Alerts
+  # =============================================================
+  - name: service_health
+    rules:
+      - alert: ServiceDown
+        expr: |
+          up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: >-
+            The service {{ $labels.job }} (instance {{ $labels.instance }})
+            has been unreachable for more than 1 minute. Health endpoint is
+            returning non-200 or the target is not responding.
+          runbook_url: "https://wiki.internal/runbooks/services/service-down"
+
+  # =============================================================
+  # HTTP Error Rate Alerts
+  # =============================================================
+  - name: http_error_rate
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+            /
+            sum(rate(http_requests_total[5m])) by (job)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "HTTP 5xx error rate > 5% for {{ $labels.job }}"
+          description: >-
+            Service {{ $labels.job }} is returning 5xx errors at a rate of
+            {{ $value | humanizePercentage }} over the last 5 minutes.
+            Investigate service logs and upstream dependencies.
+          runbook_url: "https://wiki.internal/runbooks/services/high-error-rate"
+
+  # =============================================================
+  # Latency Alerts
+  # =============================================================
+  - name: latency_alerts
+    rules:
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job))
+          > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "P95 response time > 2s for {{ $labels.job }}"
+          description: >-
+            Service {{ $labels.job }} p95 response time is
+            {{ $value | humanizeDuration }}. This exceeds the 2-second SLO
+            threshold. Check downstream dependencies, database performance,
+            and resource utilization.
+          runbook_url: "https://wiki.internal/runbooks/services/high-latency"
+
+  # =============================================================
+  # Database Connection Pool Alerts
+  # =============================================================
+  - name: database_pool_alerts
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          (
+            db_pool_active_connections / db_pool_max_connections
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Database connection pool > 90% utilized for {{ $labels.job }}"
+          description: >-
+            Service {{ $labels.job }} is using {{ $value | humanizePercentage }}
+            of its database connection pool. New requests may block or fail.
+            Consider increasing pool size or investigating long-running queries.
+          runbook_url: "https://wiki.internal/runbooks/database/connection-pool-exhausted"
+
+  # =============================================================
+  # Redis Memory Alerts
+  # =============================================================
+  - name: redis_memory_alerts
+    rules:
+      - alert: RedisMemoryHigh
+        expr: |
+          (
+            redis_memory_used_bytes / redis_memory_max_bytes
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          team: platform
+        annotations:
+          summary: "Redis memory usage exceeds 80%"
+          description: >-
+            Redis is using {{ $value | humanizePercentage }} of its configured
+            max memory. Key evictions will increase and may degrade cache
+            hit rates. Consider scaling Redis memory or reviewing key TTL policies.
+          runbook_url: "https://wiki.internal/runbooks/redis/high-memory"
+
+  # =============================================================
+  # Kafka Consumer Lag Alerts
+  # =============================================================
+  - name: kafka_consumer_lag_alerts
+    rules:
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumergroup_lag_sum > 1000
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Kafka consumer lag > 1000 for group {{ $labels.consumergroup }}"
+          description: >-
+            Consumer group {{ $labels.consumergroup }} on topic
+            {{ $labels.topic }} has a lag of {{ $value | humanize }} messages
+            sustained over 10 minutes. The consumer cannot keep up with the
+            producer rate. Consider scaling consumers or investigating
+            processing bottlenecks.
+          runbook_url: "https://wiki.internal/runbooks/kafka/consumer-lag"
+
+  # =============================================================
+  # Disk Usage Alerts
+  # =============================================================
+  - name: disk_usage_alerts
+    rules:
+      - alert: DiskUsageHigh
+        expr: |
+          (
+            (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"})
+            / node_filesystem_size_bytes{mountpoint="/"}
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+          team: platform
+        annotations:
+          summary: "Disk usage > 85% on {{ $labels.instance }}"
+          description: >-
+            Disk usage on {{ $labels.instance }} ({{ $labels.mountpoint }})
+            is at {{ $value | humanizePercentage }}. Free up space or expand
+            the volume before it reaches capacity.
+          runbook_url: "https://wiki.internal/runbooks/infrastructure/disk-usage"
+
+  # =============================================================
+  # Container Memory Alerts
+  # =============================================================
+  - name: memory_usage_alerts
+    rules:
+      - alert: MemoryUsageHigh
+        expr: |
+          (
+            container_memory_usage_bytes{name=~"atlas-.*"}
+            / container_spec_memory_limit_bytes{name=~"atlas-.*"}
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Container memory > 90% of limit for {{ $labels.name }}"
+          description: >-
+            Container {{ $labels.name }} is using {{ $value | humanizePercentage }}
+            of its memory limit. If usage continues to grow, the container will
+            be OOM-killed. Consider increasing memory limits or investigating
+            memory leaks.
+          runbook_url: "https://wiki.internal/runbooks/infrastructure/high-memory"
+
+  # =============================================================
+  # Container CPU Alerts
+  # =============================================================
+  - name: cpu_usage_alerts
+    rules:
+      - alert: CPUUsageHigh
+        expr: |
+          (
+            rate(container_cpu_usage_seconds_total{name=~"atlas-.*"}[5m])
+            / container_spec_cpu_quota{name=~"atlas-.*"}
+            * container_spec_cpu_period{name=~"atlas-.*"}
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Container CPU > 80% for {{ $labels.name }}"
+          description: >-
+            Container {{ $labels.name }} has sustained CPU usage above 80%
+            of its allocated limit for 5 minutes. This may cause request
+            throttling and increased latency. Consider scaling horizontally
+            or increasing CPU limits.
+          runbook_url: "https://wiki.internal/runbooks/infrastructure/high-cpu"
+
+  # =============================================================
+  # Simulation Queue Alerts
+  # =============================================================
+  - name: simulation_queue_alerts
+    rules:
+      - alert: SimulationQueueFull
+        expr: |
+          simulation_pending_count > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: scenario-simulation
+          team: analytics
+        annotations:
+          summary: "Pending simulations exceed 100"
+          description: >-
+            There are {{ $value | humanize }} simulations waiting in the queue.
+            Processing capacity is insufficient for the current submission rate.
+            Consider scaling the scenario-simulation service or investigating
+            slow-running simulations.
+          runbook_url: "https://wiki.internal/runbooks/simulation/queue-full"

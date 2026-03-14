@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useI18n } from "@/i18n";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
+import { simulations as simulationsApi } from "@/sdk/endpoints";
+import type { CreateSimulationRequest } from "@/sdk/endpoints";
 import {
   scenarioTemplates,
   savedScenarios,
@@ -33,8 +36,53 @@ export default function SimulationsPage() {
   const [scenarioName, setScenarioName] = useState("");
   const [runProgress, setRunProgress] = useState(0);
   const [results, setResults] = useState<ScenarioResults | null>(null);
-  const [scenarios, setScenarios] = useState<SavedScenario[]>(savedScenarios);
   const [viewingScenario, setViewingScenario] = useState<SavedScenario | null>(null);
+
+  // --- API calls with fallback to mock data ---
+  const { data: apiSimulations, loading: simsLoading, refetch: refetchSims } = useApiQuery(
+    () => simulationsApi.listSimulations(),
+    [],
+  );
+  const { mutate: createSimulationApi } = useApiMutation(
+    (params: CreateSimulationRequest) => simulationsApi.createSimulation(params),
+  );
+
+  // Resolve scenarios from API or fallback
+  const apiScenarios = useMemo(() => {
+    if (apiSimulations?.items && apiSimulations.items.length > 0) {
+      return apiSimulations.items.map((s): SavedScenario => ({
+        id: s.id,
+        name: s.name,
+        type: (s.type as SavedScenario["type"]) || "cyber_attack",
+        status: s.status === "completed" ? "completed" : s.status === "running" ? "running" : s.status === "failed" ? "failed" : "draft",
+        parameters: (s.parameters as Record<string, string | number>) ?? {},
+        createdAt: s.created_at,
+        completedAt: s.completed_at,
+        results: s.result ? {
+          overallImpact: s.result.mean_impact ?? 0,
+          economicImpact: (s.result.dimensions?.economic as number) ?? 0,
+          socialImpact: (s.result.dimensions?.social as number) ?? 0,
+          infrastructureImpact: (s.result.dimensions?.infrastructure as number) ?? 0,
+          environmentalImpact: (s.result.dimensions?.environmental as number) ?? 0,
+          probability: s.result.percentile_95 ?? 0,
+          confidence: 100 - (s.result.std_deviation ?? 20),
+          timeline: [],
+          recommendations: [],
+          affectedRegions: [],
+        } : undefined,
+      }));
+    }
+    return savedScenarios;
+  }, [apiSimulations]);
+
+  const [scenarios, setScenarios] = useState<SavedScenario[]>(savedScenarios);
+
+  // Sync API scenarios into local state when they load
+  useMemo(() => {
+    if (apiSimulations?.items && apiSimulations.items.length > 0) {
+      setScenarios(apiScenarios);
+    }
+  }, [apiScenarios, apiSimulations]);
 
   // Initialize parameters when template is selected
   const selectTemplate = useCallback((template: ScenarioTemplate) => {
@@ -52,6 +100,20 @@ export default function SimulationsPage() {
   const runSimulation = useCallback(() => {
     setStep("running");
     setRunProgress(0);
+
+    // Try to create via API (fire-and-forget; we still show local progress)
+    if (selectedTemplate) {
+      createSimulationApi({
+        name: scenarioName,
+        type: selectedTemplate.type,
+        description: selectedTemplate.description,
+        parameters: parameters as Record<string, unknown>,
+      }).then(() => {
+        refetchSims();
+      }).catch(() => {
+        // Fallback: API unavailable, use local simulation
+      });
+    }
 
     // Simulate progress
     const interval = setInterval(() => {
@@ -131,6 +193,14 @@ export default function SimulationsPage() {
   return (
     <MainLayout title={t("simulations.title")} subtitle={t("simulations.subtitle")}>
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {simsLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading simulations...</span>
+          </div>
+        )}
+
         {/* Step Indicator (when in wizard mode) */}
         {step !== "list" && (
           <div className="flex items-center gap-2">

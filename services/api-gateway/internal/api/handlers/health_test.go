@@ -8,18 +8,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestHealthCheck(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	w := httptest.NewRecorder()
-	c, r := gin.CreateTestContext(w)
+	logger, _ := zap.NewDevelopment()
+	handler := NewHealthCheckHandler(logger, nil)
 
-	r.GET("/health", HealthCheck)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+
+	r.GET("/health", handler.HealthCheck)
 
 	req := httptest.NewRequest("GET", "/health", nil)
-	c.Request = req
 
 	r.ServeHTTP(w, req)
 
@@ -29,7 +32,5 @@ func TestHealthCheck(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
-	data, exists := response["data"].(map[string]interface{})
-	assert.True(t, exists)
-	assert.Equal(t, "operational", data["status"])
+	assert.Equal(t, "healthy", response["status"])
 }

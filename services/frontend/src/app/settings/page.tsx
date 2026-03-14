@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useI18n, type Locale } from "@/i18n";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
+import { settings } from "@/sdk/endpoints";
+import type { UserSettings } from "@/sdk/endpoints";
 
 interface ToggleProps {
   enabled: boolean;
@@ -43,7 +46,40 @@ export default function SettingsPage() {
   const [emailDigest, setEmailDigest] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // --- API calls with fallback to local state ---
+  const { data: apiSettings, loading: settingsLoading } = useApiQuery(
+    () => settings.getUserSettings(),
+    [],
+  );
+  const { mutate: updateSettingsApi, loading: savingSettings } = useApiMutation(
+    (params: Partial<UserSettings>) => settings.updateSettings(params),
+  );
+
+  // Hydrate local state from API settings when they load
+  useEffect(() => {
+    if (apiSettings) {
+      if (apiSettings.theme) setDarkMode(apiSettings.theme === "dark");
+      if (apiSettings.notifications) {
+        setAlertNotif(apiSettings.notifications.push ?? true);
+        setReportNotif(apiSettings.notifications.email ?? true);
+        setEmailDigest(apiSettings.notifications.digest !== "none");
+      }
+    }
+  }, [apiSettings]);
+
   const handleSave = () => {
+    // Try saving via API, fallback to local-only save
+    updateSettingsApi({
+      theme: darkMode ? "dark" : "light",
+      language: locale,
+      notifications: {
+        email: reportNotif,
+        push: alertNotif,
+        digest: emailDigest ? "daily" : "none",
+      },
+    }).catch(() => {
+      // API unavailable, local save only
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -51,6 +87,14 @@ export default function SettingsPage() {
   return (
     <MainLayout title={t("settings.title")} subtitle={t("settings.subtitle")}>
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {settingsLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading settings...</span>
+          </div>
+        )}
+
         {/* Save confirmation */}
         {saved && (
           <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl animate-slide-up">
@@ -243,9 +287,10 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-6 py-2 text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-cyan-500 transition-all shadow-lg shadow-blue-500/20"
+                  disabled={savingSettings}
+                  className="px-6 py-2 text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-cyan-500 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
                 >
-                  {t("settings.saveChanges")}
+                  {savingSettings ? "Saving..." : t("settings.saveChanges")}
                 </button>
               </div>
             </div>

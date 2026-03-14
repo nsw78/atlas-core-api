@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
 import { useI18n } from "@/i18n";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
+import { sanctions } from "@/sdk/endpoints";
+import type { SanctionsScreenRequest } from "@/sdk/endpoints";
 
 // ============================================
 // MOCK DATA
@@ -67,8 +70,59 @@ export default function SanctionsPage() {
   const [countryCode, setCountryCode] = useState("");
   const [showResults, setShowResults] = useState(false);
 
+  // --- API calls with fallback to mock data ---
+  const { data: apiCountries, loading: countriesLoading } = useApiQuery(
+    () => sanctions.getCountries(),
+    [],
+  );
+  const { data: apiStats, loading: statsLoading } = useApiQuery(
+    () => sanctions.getStats(),
+    [],
+  );
+  const { mutate: screenEntityApi, data: screeningResult, loading: screeningLoading } = useApiMutation(
+    (params: SanctionsScreenRequest) => sanctions.screenEntity(params),
+  );
+
+  const isLoading = countriesLoading || statsLoading;
+
+  // Resolve countries from API or fallback
+  const resolvedCountries = useMemo(() => {
+    if (apiCountries && Array.isArray(apiCountries) && apiCountries.length > 0) {
+      return apiCountries.map((c) => ({
+        flag: c.flag_emoji || "",
+        name: c.country_name,
+        program: c.programs?.[0] ?? "Sanctions Program",
+        risk: c.risk_level,
+        since: c.active_since,
+      }));
+    }
+    return sanctionedCountries;
+  }, [apiCountries]);
+
+  // Resolve screening results from API or fallback
+  const resolvedScreeningResults = useMemo(() => {
+    if (screeningResult?.matches && screeningResult.matches.length > 0) {
+      return screeningResult.matches.map((m) => ({
+        name: m.matched_name,
+        confidence: Math.round(m.match_score * 100),
+        sourceList: m.list_source,
+        riskLevel: m.match_score >= 0.9 ? "critical" : m.match_score >= 0.7 ? "high" : "low",
+        matchType: m.entry_type || "Match",
+      }));
+    }
+    return mockScreeningResults;
+  }, [screeningResult]);
+
   const handleScreen = () => {
     if (entityName.trim()) {
+      // Try API screening first
+      screenEntityApi({
+        entity_name: entityName,
+        entity_type: entityType as SanctionsScreenRequest["entity_type"],
+        country_code: countryCode || undefined,
+      }).catch(() => {
+        // Fallback to showing mock results
+      });
       setShowResults(true);
     }
   };
@@ -89,6 +143,14 @@ export default function SanctionsPage() {
       subtitle={t("sanctions.subtitle")}
     >
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading live data...</span>
+          </div>
+        )}
+
         {/* =========================================== */}
         {/* KPI Strip                                   */}
         {/* =========================================== */}
@@ -190,10 +252,14 @@ export default function SanctionsPage() {
               </div>
             </div>
 
-            <Button variant="gradient" size="sm" onClick={handleScreen}>
+            <Button variant="gradient" size="sm" onClick={handleScreen} disabled={screeningLoading}>
               <span className="flex items-center gap-2">
-                <SearchIcon className="w-4 h-4" />
-                {t("sanctions.screenEntity")}
+                {screeningLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <SearchIcon className="w-4 h-4" />
+                )}
+                {screeningLoading ? "Screening..." : t("sanctions.screenEntity")}
               </span>
             </Button>
 
@@ -203,10 +269,10 @@ export default function SanctionsPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-white">{t("sanctions.screeningResults")}</h3>
                   <span className="text-[11px] text-gray-500">
-                    {mockScreeningResults.length} {t("sanctions.resultsFound")}
+                    {resolvedScreeningResults.length} {t("sanctions.resultsFound")}
                   </span>
                 </div>
-                {mockScreeningResults.map((result, idx) => (
+                {resolvedScreeningResults.map((result, idx) => (
                   <div
                     key={idx}
                     className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.05] transition-colors animate-slide-up"
@@ -274,7 +340,7 @@ export default function SanctionsPage() {
             </div>
 
             <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin">
-              {sanctionedCountries.map((country, idx) => (
+              {resolvedCountries.map((country, idx) => (
                 <div
                   key={country.name}
                   className="group p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.05] hover:border-white/[0.1] transition-all cursor-pointer"

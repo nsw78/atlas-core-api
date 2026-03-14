@@ -1,19 +1,76 @@
+// Re-export unified API client
 export { api, ApiError } from './apiClient';
-export { authApi } from './authApi';
-export type { LoginRequest, RegisterRequest, AuthTokens, UserProfile } from './authApi';
-export { riskApi } from './riskApi';
-export type { RiskAssessment, RiskDimension, RiskFactor, RiskAlert } from './riskApi';
-export { graphApi } from './graphApi';
-export type { Entity, Relationship, Community } from './graphApi';
-export { simulationApi } from './simulationApi';
-export type { Scenario, SimulationResult } from './simulationApi';
-export { geospatialApi } from './geospatialApi';
-export type { SpatialQuery, Zone, SupplyChain, SupplyChainNode } from './geospatialApi';
-export { platformApi } from './platformApi';
-export type { ServiceStatus, PlatformStatus } from './platformApi';
-export { sanctionsApi } from './sanctionsApi';
+export type { RequestOptions } from './apiClient';
+
+// Re-export typed endpoint namespaces
+export {
+  auth,
+  risk,
+  scenarios,
+  sanctions,
+  trade,
+  compliance,
+  geospatial,
+  news,
+  graph,
+  threats,
+  overview,
+  analytics,
+  settings,
+  reports,
+  simulations,
+} from './endpoints';
+
+// Re-export commonly used types from endpoints
 export type {
-  SanctionsScreenRequest, SanctionsScreenResult, SanctionsMatch,
-  SanctionsList, SanctionedCountry, SanctionsStats,
-  TradeIntelligence, TradeIntelligenceRequest, TradePartner, TradeRestriction, TradeCommodity,
-} from './sanctionsApi';
+  PaginatedList,
+  PaginationParams,
+  LoginRequest,
+  RegisterRequest,
+  AuthTokens,
+  UserProfile,
+  RiskAssessment,
+  RiskDimension,
+  RiskFactor,
+  RiskAlert,
+  Scenario,
+  SimulationResult,
+  SanctionsScreenRequest,
+  SanctionsScreenResult,
+  SanctionsMatch,
+  SanctionsList,
+  SanctionedCountry,
+  SanctionsStats,
+  TradeIntelligence,
+  TradeIntelligenceRequest,
+  TradePartner,
+  TradeRestriction,
+  TradeCommodity,
+  SpatialQuery,
+  Zone,
+  SupplyChain,
+  SupplyChainNode,
+  GraphEntity,
+  GraphRelationship,
+  GraphCommunity,
+  ServiceStatus,
+  PlatformStatus,
+  NewsArticle,
+  OsintSignal,
+  Threat,
+  ThreatActor,
+  IOC,
+  Report,
+  ReportTemplate,
+  UserSettings,
+  SystemConfig,
+} from './endpoints';
+
+// Legacy re-exports – keep existing per-domain SDK modules working
+export { authApi } from './authApi';
+export { riskApi } from './riskApi';
+export { graphApi } from './graphApi';
+export { simulationApi } from './simulationApi';
+export { geospatialApi } from './geospatialApi';
+export { platformApi } from './platformApi';
+export { sanctionsApi } from './sanctionsApi';

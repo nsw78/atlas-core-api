@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useI18n } from "@/i18n";
+import { useApiQuery } from "@/hooks/useApi";
+import { threats as threatsApi } from "@/sdk/endpoints";
 
 const threatFeeds = [
   { id: "tf-001", name: "MITRE ATT&CK", status: "active", iocs: 12847, lastUpdate: "2 min" },
@@ -34,6 +36,70 @@ export default function ThreatsPage() {
   const { t } = useI18n();
   const [selectedTab, setSelectedTab] = useState<"feeds" | "actors" | "iocs">("feeds");
 
+  // --- API calls with fallback to mock data ---
+  const { data: apiThreats, loading: threatsLoading } = useApiQuery(
+    () => threatsApi.getThreats(),
+    [],
+  );
+  const { data: apiActors, loading: actorsLoading } = useApiQuery(
+    () => threatsApi.getThreatActors(),
+    [],
+  );
+  const { data: apiIOCs, loading: iocsLoading } = useApiQuery(
+    () => threatsApi.getIOCs(),
+    [],
+  );
+  const { data: apiFeeds, loading: feedsLoading } = useApiQuery(
+    () => threatsApi.getThreatFeeds(),
+    [],
+  );
+
+  const isLoading = threatsLoading || actorsLoading || iocsLoading || feedsLoading;
+
+  // Resolve feeds from API or fallback
+  const resolvedFeeds = useMemo(() => {
+    if (apiFeeds && Array.isArray(apiFeeds) && apiFeeds.length > 0) {
+      return apiFeeds.map((f) => ({
+        id: f.id,
+        name: f.name,
+        status: f.status === "active" ? "active" : "degraded",
+        iocs: f.total_indicators,
+        lastUpdate: f.last_sync ? new Date(f.last_sync).toLocaleTimeString() : "N/A",
+      }));
+    }
+    return threatFeeds;
+  }, [apiFeeds]);
+
+  // Resolve actors from API or fallback
+  const resolvedActors = useMemo(() => {
+    if (apiActors && apiActors.items && apiActors.items.length > 0) {
+      return apiActors.items.map((a) => ({
+        name: a.name,
+        alias: a.aliases?.[0] ?? "",
+        origin: a.origin_country,
+        campaigns: a.associated_threats?.length ?? 0,
+        severity: a.confidence >= 80 ? "critical" : a.confidence >= 60 ? "high" : "medium",
+        lastSeen: "N/A",
+        ttps: a.capabilities?.slice(0, 3) ?? [],
+      }));
+    }
+    return threatActors;
+  }, [apiActors]);
+
+  // Resolve IOCs from API or fallback
+  const resolvedIOCs = useMemo(() => {
+    if (apiIOCs && apiIOCs.items && apiIOCs.items.length > 0) {
+      return apiIOCs.items.map((ioc) => ({
+        indicator: ioc.value,
+        type: ioc.type,
+        confidence: ioc.confidence,
+        source: ioc.tags?.[0] ?? "Unknown",
+        severity: ioc.confidence >= 90 ? "critical" : ioc.confidence >= 80 ? "high" : "medium",
+      }));
+    }
+    return recentIOCs;
+  }, [apiIOCs]);
+
   const kpis = [
     { label: t("threats.activeThreatFeeds"), value: "6", color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "+2" },
     { label: t("threats.iocCount"), value: "59,982", color: "text-blue-400", bg: "bg-blue-500/10", trend: "+1,247" },
@@ -50,6 +116,14 @@ export default function ThreatsPage() {
   return (
     <MainLayout title={t("threats.title")} subtitle={t("threats.subtitle")}>
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading live data...</span>
+          </div>
+        )}
+
         {/* KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {kpis.map((kpi, index) => (
@@ -94,7 +168,7 @@ export default function ThreatsPage() {
               <h2 className="text-lg font-semibold text-white">{t("threats.activeThreatFeeds")}</h2>
             </div>
             <div className="divide-y divide-white/[0.04]">
-              {threatFeeds.map((feed) => (
+              {resolvedFeeds.map((feed) => (
                 <div key={feed.id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-2.5 h-2.5 rounded-full ${feed.status === "active" ? "bg-emerald-500 ring-4 ring-emerald-500/10" : "bg-amber-500 ring-4 ring-amber-500/10"}`} />
@@ -128,7 +202,7 @@ export default function ThreatsPage() {
               <h2 className="text-lg font-semibold text-white">{t("threats.threatActors")}</h2>
             </div>
             <div className="divide-y divide-white/[0.04]">
-              {threatActors.map((actor) => (
+              {resolvedActors.map((actor) => (
                 <div key={actor.name} className="p-4 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -189,7 +263,7 @@ export default function ThreatsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
-                  {recentIOCs.map((ioc, i) => (
+                  {resolvedIOCs.map((ioc, i) => (
                     <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3">
                         <span className="text-sm text-white font-mono">{ioc.indicator}</span>

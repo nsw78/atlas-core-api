@@ -5,7 +5,10 @@ import { MainLayout } from "@/components/layouts";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useI18n } from "@/i18n";
+import { useApiQuery } from "@/hooks/useApi";
+import { overview, risk } from "@/sdk/endpoints";
 import { generateTimeSeries, analyticsKPIs } from "@/data/analytics";
+import { mockAlerts } from "@/data/alerts";
 import {
   severityConfig,
   alertCategories,
@@ -203,6 +206,45 @@ function MetadataItem({ label, value, highlight }: { label: string; value: strin
 // ============================================
 export default function DashboardPage() {
   const { t } = useI18n();
+
+  // --- API calls with fallback to mock data ---
+  const { data: apiAlerts, loading: alertsLoading } = useApiQuery(
+    () => risk.getAlerts(),
+    [],
+  );
+  const { data: apiKPIs, loading: kpisLoading } = useApiQuery(
+    () => overview.getKPIs(),
+    [],
+  );
+  const { data: apiPlatform, loading: platformLoading } = useApiQuery(
+    () => overview.getPlatformStatus(),
+    [],
+  );
+
+  // Convert API alerts to AlertDetail shape for useAlerts fallback
+  const resolvedInitialAlerts = useMemo(() => {
+    if (apiAlerts && Array.isArray(apiAlerts) && apiAlerts.length > 0) {
+      return apiAlerts.map((a) => ({
+        id: a.id,
+        title: a.message,
+        description: a.message,
+        severity: a.severity as AlertSeverity,
+        category: "cyber" as AlertCategory,
+        status: a.is_resolved ? ("acknowledged" as const) : ("unread" as const),
+        source: "API",
+        region: "Global",
+        impact: a.message,
+        estimatedImpactScore: a.severity === "critical" ? 90 : a.severity === "high" ? 75 : a.severity === "medium" ? 50 : 25,
+        timestamp: a.created_at,
+        updatedAt: a.created_at,
+        relatedEntities: [] as string[],
+        recommendations: [] as string[],
+        externalLinks: [] as { label: string; url: string }[],
+      })) as AlertDetail[];
+    }
+    return mockAlerts;
+  }, [apiAlerts]);
+
   const {
     alerts,
     selectedAlert,
@@ -219,7 +261,7 @@ export default function DashboardPage() {
     investigateAlert,
     dismissAlert,
     refresh,
-  } = useAlerts();
+  } = useAlerts({ initialAlerts: resolvedInitialAlerts });
 
   const autoRefresh = useAutoRefresh({
     defaultInterval: 30,
@@ -230,18 +272,59 @@ export default function DashboardPage() {
   const [chartRange] = useState(30);
   const trendData = useMemo(() => generateTimeSeries(chartRange), [chartRange]);
 
+  const isLoading = alertsLoading || kpisLoading || platformLoading;
+
+  // Build KPI data from API or fallback to hardcoded values
+  const kpiValues = useMemo(() => {
+    if (apiKPIs && Array.isArray(apiKPIs) && apiKPIs.length > 0) {
+      const findKPI = (id: string) => apiKPIs.find((k) => k.id === id);
+      return {
+        riskIndex: findKPI("risk-index")?.value?.toString() ?? "67",
+        riskTrend: findKPI("risk-index")?.trend_value ? `${findKPI("risk-index")!.trend_value > 0 ? "+" : ""}${findKPI("risk-index")!.trend_value}%` : "+5.2%",
+        activeThreats: findKPI("active-threats")?.value?.toString() ?? "23",
+        threatsTrend: findKPI("active-threats")?.trend_value ? `${findKPI("active-threats")!.trend_value > 0 ? "+" : ""}${findKPI("active-threats")!.trend_value}%` : "+12%",
+        dataSources: findKPI("data-sources")?.value?.toString() ?? "847",
+        dataSourcesTrend: findKPI("data-sources")?.trend_value ? `+${findKPI("data-sources")!.trend_value}%` : "+1.8%",
+        modelAccuracy: findKPI("model-accuracy")?.value ? `${findKPI("model-accuracy")!.value}%` : "94.2%",
+        modelTrend: findKPI("model-accuracy")?.trend_value ? `+${findKPI("model-accuracy")!.trend_value}%` : "+1.2%",
+      };
+    }
+    return {
+      riskIndex: "67", riskTrend: "+5.2%",
+      activeThreats: "23", threatsTrend: "+12%",
+      dataSources: "847", dataSourcesTrend: "+1.8%",
+      modelAccuracy: "94.2%", modelTrend: "+1.2%",
+    };
+  }, [apiKPIs]);
+
+  // Platform status from API
+  const platformStatus = useMemo(() => {
+    if (apiPlatform) {
+      return apiPlatform.overall ?? "healthy";
+    }
+    return "healthy";
+  }, [apiPlatform]);
+
   // KPI data for the top strip
   const kpis = [
-    { label: t("dashboard.riskIndex"), value: "67", trend: "+5.2%", color: "text-red-400", glowColor: "rose", icon: ShieldIcon },
-    { label: t("dashboard.activeThreats"), value: "23", trend: "+12%", color: "text-amber-400", glowColor: "amber", icon: AlertTriangleIcon },
+    { label: t("dashboard.riskIndex"), value: kpiValues.riskIndex, trend: kpiValues.riskTrend, color: "text-red-400", glowColor: "rose", icon: ShieldIcon },
+    { label: t("dashboard.activeThreats"), value: kpiValues.activeThreats, trend: kpiValues.threatsTrend, color: "text-amber-400", glowColor: "amber", icon: AlertTriangleIcon },
     { label: t("dashboard.unreadAlerts"), value: String(unreadCount), trend: "", color: "text-blue-400", glowColor: "blue", icon: InboxIcon },
     { label: t("risk.critical"), value: String(criticalCount), trend: "", color: "text-red-500", glowColor: "rose", icon: FireIcon },
-    { label: t("dashboard.dataSources"), value: "847", trend: "+1.8%", color: "text-emerald-400", glowColor: "emerald", icon: DatabaseIcon },
-    { label: t("dashboard.modelAccuracyLabel"), value: "94.2%", trend: "+1.2%", color: "text-cyan-400", glowColor: "cyan", icon: CpuIcon },
+    { label: t("dashboard.dataSources"), value: kpiValues.dataSources, trend: kpiValues.dataSourcesTrend, color: "text-emerald-400", glowColor: "emerald", icon: DatabaseIcon },
+    { label: t("dashboard.modelAccuracyLabel"), value: kpiValues.modelAccuracy, trend: kpiValues.modelTrend, color: "text-cyan-400", glowColor: "cyan", icon: CpuIcon },
   ];
 
   return (
     <MainLayout title={t("dashboard.title")} subtitle={t("dashboard.subtitle")}>
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="flex items-center gap-2 px-4 py-2 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+          <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+          <span className="text-xs text-blue-400">Loading live data...</span>
+        </div>
+      )}
+
       {/* Alert Modal */}
       <AlertModal
         alert={selectedAlert}
@@ -388,9 +471,21 @@ export default function DashboardPage() {
                 <span className="text-gray-500">{t("dashboard.lastRefresh")}</span>
                 <span className="text-emerald-400 font-medium tabular-nums">{autoRefresh.lastRefresh.toLocaleTimeString()}</span>
               </div>
-              <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-emerald-500/[0.06] border border-emerald-500/10 rounded-xl">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs text-emerald-400 font-medium">{t("dashboard.allSystemsOperational")}</span>
+              <div className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-xl ${
+                platformStatus === "healthy"
+                  ? "bg-emerald-500/[0.06] border border-emerald-500/10"
+                  : platformStatus === "degraded"
+                    ? "bg-amber-500/[0.06] border border-amber-500/10"
+                    : "bg-red-500/[0.06] border border-red-500/10"
+              }`}>
+                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  platformStatus === "healthy" ? "bg-emerald-500" :
+                  platformStatus === "degraded" ? "bg-amber-500" : "bg-red-500"
+                }`} />
+                <span className={`text-xs font-medium ${
+                  platformStatus === "healthy" ? "text-emerald-400" :
+                  platformStatus === "degraded" ? "text-amber-400" : "text-red-400"
+                }`}>{t("dashboard.allSystemsOperational")}</span>
               </div>
             </div>
           </div>

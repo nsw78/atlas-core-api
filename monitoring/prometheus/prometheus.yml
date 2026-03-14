@@ -1,0 +1,277 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: atlas-core
+    environment: production
+
+# =============================================
+# Alerting Configuration
+# =============================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+      timeout: 10s
+
+# =============================================
+# Alert Rules
+# =============================================
+rule_files:
+  - "alert_rules.yml"
+
+# =============================================
+# Scrape Configurations
+# =============================================
+scrape_configs:
+  # -------------------------------------------
+  # Prometheus Self-Monitoring
+  # -------------------------------------------
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # -------------------------------------------
+  # Core Platform Services - Go
+  # -------------------------------------------
+  - job_name: "api-gateway"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-api-gateway:9090"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "api-gateway"
+
+  # -------------------------------------------
+  # Python Services (FastAPI via prometheus-client on :8000/metrics)
+  # -------------------------------------------
+  - job_name: "sanctions-screening"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-sanctions-screening:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "sanctions-screening"
+
+  - job_name: "scenario-simulation"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-scenario-simulation:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "scenario-simulation"
+
+  - job_name: "news-aggregator"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-news-aggregator:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "news-aggregator"
+
+  - job_name: "nlp-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-nlp-service:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "nlp-service"
+
+  - job_name: "ml-infrastructure"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-ml-infrastructure:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "ml-infrastructure"
+
+  - job_name: "model-serving"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-model-serving:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "model-serving"
+
+  - job_name: "model-monitoring"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-model-monitoring:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "model-monitoring"
+
+  - job_name: "xai-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-xai-service:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "xai-service"
+
+  - job_name: "war-gaming"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-war-gaming:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "war-gaming"
+
+  - job_name: "digital-twins"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-digital-twins:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "digital-twins"
+
+  - job_name: "policy-impact"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-policy-impact:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "policy-impact"
+
+  - job_name: "compliance-automation"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-compliance-automation:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "compliance-automation"
+
+  - job_name: "advanced-rd"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-advanced-rd:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "advanced-rd"
+
+  - job_name: "multi-region"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-multi-region:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "multi-region"
+
+  - job_name: "data-residency"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-data-residency:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "data-residency"
+
+  - job_name: "federated-learning"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-federated-learning:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "federated-learning"
+
+  - job_name: "mobile-api"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-mobile-api:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "mobile-api"
+
+  - job_name: "cost-optimization"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-cost-optimization:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "cost-optimization"
+
+  - job_name: "performance-optimization"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-performance-optimization:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "performance-optimization"
+
+  - job_name: "security-certification"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-security-certification:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "security-certification"
+
+  - job_name: "continuous-improvement"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-continuous-improvement:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "continuous-improvement"
+
+  # -------------------------------------------
+  # Infrastructure Exporters
+  # -------------------------------------------
+  - job_name: "postgres-exporter"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-postgres-exporter:9187"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "postgres-exporter"
+
+  - job_name: "redis-exporter"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-redis-exporter:9121"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "redis-exporter"
+
+  - job_name: "kafka-exporter"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-kafka-exporter:9308"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "kafka-exporter"
+
+  - job_name: "node-exporter"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["atlas-node-exporter:9100"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "node-exporter"

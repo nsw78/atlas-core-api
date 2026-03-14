@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback } from "react";
 import { MainLayout } from "@/components/layouts";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useI18n } from "@/i18n";
+import { useApiQuery } from "@/hooks/useApi";
+import { analytics as analyticsApi } from "@/sdk/endpoints";
 import {
   generateTimeSeries,
   analyticsKPIs,
@@ -74,6 +76,48 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "trends" | "breakdown">("overview");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // --- API calls with fallback to mock data ---
+  const { data: apiMetrics, loading: metricsLoading } = useApiQuery(
+    () => analyticsApi.getMetrics(),
+    [refreshKey],
+  );
+  const { data: apiTimeSeries, loading: tsLoading } = useApiQuery(
+    () => analyticsApi.getTimeSeries("incidents"),
+    [refreshKey],
+  );
+  const { data: apiBreakdown, loading: breakdownLoading } = useApiQuery(
+    () => analyticsApi.getBreakdown("category"),
+    [refreshKey],
+  );
+
+  const isApiLoading = metricsLoading || tsLoading || breakdownLoading;
+
+  // Resolve KPIs from API metrics or fallback
+  const resolvedKPIs = useMemo(() => {
+    if (apiMetrics?.metrics && Object.keys(apiMetrics.metrics).length > 0) {
+      return analyticsKPIs.map((kpi) => ({
+        ...kpi,
+        value: apiMetrics.metrics[kpi.id] ?? kpi.value,
+      }));
+    }
+    return analyticsKPIs;
+  }, [apiMetrics]);
+
+  // Resolve breakdown from API or fallback
+  const resolvedBreakdown = useMemo(() => {
+    if (apiBreakdown && Array.isArray(apiBreakdown) && apiBreakdown.length > 0) {
+      const colors = ["#8b5cf6", "#ef4444", "#f59e0b", "#3b82f6", "#06b6d4", "#10b981"];
+      return apiBreakdown.map((item, i) => ({
+        category: item.label,
+        count: Math.round(item.value),
+        percentage: Math.round(item.percentage),
+        color: colors[i % colors.length] as string,
+        avgSeverity: item.value / 10,
+      }));
+    }
+    return categoryBreakdown;
+  }, [apiBreakdown]);
+
   const refresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
@@ -106,13 +150,13 @@ export default function AnalyticsPage() {
   // Radar data for category comparison
   const radarData = useMemo(
     () =>
-      categoryBreakdown.map((c) => ({
+      resolvedBreakdown.map((c) => ({
         category: c.category.split(" ")[0] || c.category,
         incidents: c.count,
         severity: c.avgSeverity * 10,
         percentage: c.percentage,
       })),
-    []
+    [resolvedBreakdown]
   );
 
   const handleExport = (format: "csv" | "json") => {
@@ -131,6 +175,14 @@ export default function AnalyticsPage() {
   return (
     <MainLayout title={t("analytics.title")} subtitle={t("analytics.subtitle")}>
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {isApiLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading analytics data...</span>
+          </div>
+        )}
+
         {/* Header Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Tabs */}
@@ -237,7 +289,7 @@ export default function AnalyticsPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {analyticsKPIs.map((kpi) => (
+          {resolvedKPIs.map((kpi) => (
             <div key={kpi.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors">
               <p className="text-xs text-gray-400 mb-1">{kpi.label}</p>
               <p className="text-xl font-bold text-white">
@@ -323,7 +375,7 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={categoryBreakdown}
+                        data={resolvedBreakdown}
                         cx="50%"
                         cy="50%"
                         innerRadius={50}
@@ -332,7 +384,7 @@ export default function AnalyticsPage() {
                         dataKey="count"
                         nameKey="category"
                       >
-                        {categoryBreakdown.map((entry, i) => (
+                        {resolvedBreakdown.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>
@@ -343,7 +395,7 @@ export default function AnalyticsPage() {
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2 mt-2">
-                  {categoryBreakdown.map((cat) => (
+                  {resolvedBreakdown.map((cat) => (
                     <div key={cat.category} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />

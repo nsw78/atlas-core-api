@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -42,7 +45,23 @@ func NewAuthHandler(cfg *config.Config, logger *zap.Logger, c ...cache.Cache) *A
 	return handler
 }
 
-// Login handles user login with brute-force protection
+// iamLoginResponse represents the response from the IAM service's login endpoint.
+type iamLoginResponse struct {
+	Data struct {
+		ID       string   `json:"id"`
+		Username string   `json:"username"`
+		Email    string   `json:"email"`
+		Roles    []string `json:"roles"`
+	} `json:"data"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+// Login handles user login with brute-force protection.
+// It forwards credentials to the IAM service for validation, then issues a
+// gateway JWT containing the real user data returned by IAM.
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
@@ -77,17 +96,96 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		}
 	}
 
-	// Generate access token
-	token, err := h.generateToken(req.Username, "user@example.com")
+	// ---- Forward login request to the IAM service ----
+	iamBaseURL, exists := h.config.Services.Registry["iam-service"]
+	if !exists {
+		// Fallback to the dedicated IAMService config
+		iamBaseURL = h.config.Services.IAMService.URL
+	}
+
+	iamPayload, _ := json.Marshal(map[string]string{
+		"username": req.Username,
+		"password": req.Password,
+	})
+
+	iamReq, err := http.NewRequestWithContext(
+		c.Request.Context(),
+		http.MethodPost,
+		iamBaseURL+"/api/v1/auth/login",
+		bytes.NewReader(iamPayload),
+	)
 	if err != nil {
-		// Increment failed login attempts
+		h.logger.Error("Failed to create IAM request", zap.Error(err))
+		apiErr := types.NewAPIError(types.ErrInternalServerError, "Internal server error")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusInternalServerError, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+	iamReq.Header.Set("Content-Type", "application/json")
+	iamReq.Header.Set("X-Request-ID", c.GetString("request_id"))
+
+	iamTimeout := h.config.Services.IAMService.Timeout
+	if iamTimeout == 0 {
+		iamTimeout = 10 * time.Second
+	}
+	httpClient := &http.Client{Timeout: iamTimeout}
+
+	iamResp, err := httpClient.Do(iamReq)
+	if err != nil {
+		h.logger.Error("IAM service unreachable", zap.Error(err))
+		apiErr := types.NewAPIError(types.ErrInternalServerError, "Authentication service unavailable")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusServiceUnavailable, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+	defer iamResp.Body.Close()
+
+	iamBody, _ := io.ReadAll(iamResp.Body)
+
+	// If IAM rejected the credentials, increment brute-force counter and relay error
+	if iamResp.StatusCode != http.StatusOK {
 		if h.cache != nil {
 			attemptsKey := loginAttemptsPrefix + c.ClientIP()
 			h.cache.IncrementCounter(c.Request.Context(), attemptsKey, 1)
 			h.cache.Set(c.Request.Context(), attemptsKey+"_ttl", true, lockoutDuration)
 		}
 
-		h.logger.Error("Failed to generate token", zap.Error(err))
+		h.logger.Warn("IAM login rejected",
+			zap.String("username", req.Username),
+			zap.Int("iam_status", iamResp.StatusCode),
+		)
+		apiErr := types.NewAPIError(types.ErrUnauthorized, "Invalid username or password")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusUnauthorized, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+
+	// Parse IAM response to extract real user data
+	var iamLogin iamLoginResponse
+	if err := json.Unmarshal(iamBody, &iamLogin); err != nil {
+		h.logger.Error("Failed to parse IAM response", zap.Error(err), zap.String("body", string(iamBody)))
+		apiErr := types.NewAPIError(types.ErrInternalServerError, "Failed to process authentication response")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusInternalServerError, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+
+	userData := iamLogin.Data
+	if userData.ID == "" {
+		h.logger.Error("IAM response missing user ID", zap.String("body", string(iamBody)))
+		apiErr := types.NewAPIError(types.ErrInternalServerError, "Invalid authentication response")
+		apiErr.TraceID = c.GetString("request_id")
+		c.JSON(http.StatusInternalServerError, types.NewErrorResponse(apiErr, c.Request.URL.Path))
+		return
+	}
+
+	// Derive permissions from roles
+	permissions := derivePermissions(userData.Roles)
+
+	// Generate a gateway JWT using real user data from IAM
+	token, err := h.generateToken(userData.ID, userData.Username, userData.Email, userData.Roles, permissions)
+	if err != nil {
+		h.logger.Error("Failed to generate gateway token", zap.Error(err))
 		apiErr := types.NewAPIError(types.ErrInternalServerError, "Failed to generate token")
 		apiErr.TraceID = c.GetString("request_id")
 		c.JSON(http.StatusInternalServerError, types.NewErrorResponse(apiErr, c.Request.URL.Path))
@@ -101,12 +199,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	h.logger.Info("User login successful",
-		zap.String("username", req.Username),
+		zap.String("user_id", userData.ID),
+		zap.String("username", userData.Username),
 		zap.String("ip", c.ClientIP()),
 		zap.String("request_id", c.GetString("request_id")),
 	)
 
 	refreshToken := h.generateRefreshToken()
+
+	// Build role responses from the IAM roles list
+	roleResponses := make([]dto.RoleResponse, 0, len(userData.Roles))
+	for _, r := range userData.Roles {
+		roleResponses = append(roleResponses, dto.RoleResponse{Name: r})
+	}
 
 	response := dto.LoginResponse{
 		AccessToken:  token,
@@ -114,11 +219,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		TokenType:    "Bearer",
 		ExpiresIn:    int(h.config.Auth.JWTExpiration.Seconds()),
 		User: dto.UserResponse{
-			ID:        "user-123",
-			Username:  req.Username,
-			Email:     "user@example.com",
+			ID:        userData.ID,
+			Username:  userData.Username,
+			Email:     userData.Email,
 			Status:    "active",
-			Roles:     []dto.RoleResponse{},
+			Roles:     roleResponses,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -130,6 +235,30 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Data:    response,
 		TraceID: c.GetString("request_id"),
 	})
+}
+
+// derivePermissions maps role names to a base set of permissions.
+func derivePermissions(roles []string) []string {
+	permSet := map[string]struct{}{}
+	for _, role := range roles {
+		switch role {
+		case "admin":
+			permSet["admin:all"] = struct{}{}
+			permSet["read:profile"] = struct{}{}
+			permSet["write:profile"] = struct{}{}
+		case "analyst":
+			permSet["read:profile"] = struct{}{}
+			permSet["read:reports"] = struct{}{}
+			permSet["write:reports"] = struct{}{}
+		default:
+			permSet["read:profile"] = struct{}{}
+		}
+	}
+	perms := make([]string, 0, len(permSet))
+	for p := range permSet {
+		perms = append(perms, p)
+	}
+	return perms
 }
 
 // RefreshToken handles token refresh requests
@@ -163,7 +292,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	// Validate refresh token
-	_, err := jwt.Parse(req.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(req.RefreshToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -178,8 +307,57 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	// Extract user info from the refresh token claims for the new access token
+	refreshClaims, ok := parsedToken.Claims.(jwt.MapClaims)
+	refreshUserID := "unknown"
+	refreshUsername := "unknown"
+	refreshEmail := ""
+	var refreshRoles []string
+	var refreshPermissions []string
+	if ok {
+		if v, exists := refreshClaims["user_id"]; exists {
+			if s, ok := v.(string); ok {
+				refreshUserID = s
+			}
+		}
+		if v, exists := refreshClaims["username"]; exists {
+			if s, ok := v.(string); ok {
+				refreshUsername = s
+			}
+		}
+		if v, exists := refreshClaims["email"]; exists {
+			if s, ok := v.(string); ok {
+				refreshEmail = s
+			}
+		}
+		if v, exists := refreshClaims["roles"]; exists {
+			if arr, ok := v.([]interface{}); ok {
+				for _, item := range arr {
+					if s, ok := item.(string); ok {
+						refreshRoles = append(refreshRoles, s)
+					}
+				}
+			}
+		}
+		if v, exists := refreshClaims["permissions"]; exists {
+			if arr, ok := v.([]interface{}); ok {
+				for _, item := range arr {
+					if s, ok := item.(string); ok {
+						refreshPermissions = append(refreshPermissions, s)
+					}
+				}
+			}
+		}
+	}
+	if len(refreshRoles) == 0 {
+		refreshRoles = []string{"user"}
+	}
+	if len(refreshPermissions) == 0 {
+		refreshPermissions = []string{"read:profile"}
+	}
+
 	// Generate new access token
-	token, err := h.generateToken("user", "user@example.com")
+	token, err := h.generateToken(refreshUserID, refreshUsername, refreshEmail, refreshRoles, refreshPermissions)
 	if err != nil {
 		h.logger.Error("Failed to generate token", zap.Error(err))
 		apiErr := types.NewAPIError(types.ErrInternalServerError, "Failed to generate token")
@@ -304,15 +482,15 @@ func (h *AuthHandler) ValidateToken(c *gin.Context) {
 	})
 }
 
-// generateToken generates a JWT access token
-func (h *AuthHandler) generateToken(username, email string) (string, error) {
+// generateToken generates a JWT access token using real user data.
+func (h *AuthHandler) generateToken(userID, username, email string, roles, permissions []string) (string, error) {
 	now := time.Now()
 	claims := middleware.CustomClaims{
-		UserID:      fmt.Sprintf("user-%d", now.Unix()),
+		UserID:      userID,
 		Username:    username,
 		Email:       email,
-		Roles:       []string{"user"},
-		Permissions: []string{"read:profile"},
+		Roles:       roles,
+		Permissions: permissions,
 		MFAVerified: false,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(h.config.Auth.JWTExpiration)),

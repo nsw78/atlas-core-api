@@ -1,25 +1,85 @@
 "use client";
 
+import { useMemo } from "react";
 import { MainLayout } from "@/components/layouts";
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/components/atoms";
 import { useI18n } from "@/i18n";
+import { useApiQuery } from "@/hooks/useApi";
+import { compliance } from "@/sdk/endpoints";
+
+// Mock data for fallback
+const mockComplianceStatus = [
+  { framework: "GDPR", status: "compliant", lastAudit: "2024-01-15", findings: 0 },
+  { framework: "LGPD", status: "compliant", lastAudit: "2024-01-10", findings: 2 },
+  { framework: "SOC 2", status: "compliant", lastAudit: "2023-12-20", findings: 1 },
+  { framework: "ISO 27001", status: "review-required", lastAudit: "2023-11-30", findings: 5 },
+];
+
+const mockAuditLogs = [
+  { time: "14:32:15", user: "john.analyst", action: "view", resource: "Risk Assessment #2847" },
+  { time: "14:28:42", user: "maria.exec", action: "export", resource: "Dashboard Report" },
+  { time: "14:15:08", user: "chen.analyst", action: "create", resource: "Scenario Simulation" },
+  { time: "13:58:33", user: "admin", action: "update", resource: "User Permissions" },
+  { time: "13:45:21", user: "john.analyst", action: "simulate", resource: "Taiwan Blockade Scenario" },
+];
 
 export default function CompliancePage() {
   const { t } = useI18n();
+
+  // --- API calls with fallback to mock data ---
+  const { data: apiComplianceStatus, loading: statusLoading } = useApiQuery(
+    () => compliance.getComplianceStatus(),
+    [],
+  );
+  const { data: apiAuditLogs, loading: logsLoading } = useApiQuery(
+    () => compliance.getAuditLogs(),
+    [],
+  );
+
+  const isLoading = statusLoading || logsLoading;
+
+  // Resolve compliance status from API or fallback
+  const resolvedComplianceStatus = useMemo(() => {
+    if (apiComplianceStatus && Array.isArray(apiComplianceStatus) && apiComplianceStatus.length > 0) {
+      return apiComplianceStatus.map((s) => ({
+        framework: s.framework,
+        status: s.status,
+        lastAudit: s.last_audit,
+        findings: s.findings,
+      }));
+    }
+    return mockComplianceStatus;
+  }, [apiComplianceStatus]);
+
+  // Resolve audit logs from API or fallback
+  const resolvedAuditLogs = useMemo(() => {
+    if (apiAuditLogs?.items && apiAuditLogs.items.length > 0) {
+      return apiAuditLogs.items.map((log) => ({
+        time: new Date(log.timestamp).toLocaleTimeString(),
+        user: log.user_name,
+        action: log.action,
+        resource: `${log.resource} ${log.resource_id ? "#" + log.resource_id : ""}`.trim(),
+      }));
+    }
+    return mockAuditLogs;
+  }, [apiAuditLogs]);
   return (
     <MainLayout
       title={t("compliance.title")}
       subtitle={t("compliance.subtitle")}
     >
       <div className="space-y-6">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+            <span className="text-xs text-blue-400">Loading compliance data...</span>
+          </div>
+        )}
+
         {/* Compliance Status Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { framework: "GDPR", status: "compliant", lastAudit: "2024-01-15", findings: 0 },
-            { framework: "LGPD", status: "compliant", lastAudit: "2024-01-10", findings: 2 },
-            { framework: "SOC 2", status: "compliant", lastAudit: "2023-12-20", findings: 1 },
-            { framework: "ISO 27001", status: "review-required", lastAudit: "2023-11-30", findings: 5 },
-          ].map((item) => (
+          {resolvedComplianceStatus.map((item) => (
             <Card key={item.framework}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -88,38 +148,7 @@ export default function CompliancePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
-                    {[
-                      {
-                        time: "14:32:15",
-                        user: "john.analyst",
-                        action: "view",
-                        resource: "Risk Assessment #2847",
-                      },
-                      {
-                        time: "14:28:42",
-                        user: "maria.exec",
-                        action: "export",
-                        resource: "Dashboard Report",
-                      },
-                      {
-                        time: "14:15:08",
-                        user: "chen.analyst",
-                        action: "create",
-                        resource: "Scenario Simulation",
-                      },
-                      {
-                        time: "13:58:33",
-                        user: "admin",
-                        action: "update",
-                        resource: "User Permissions",
-                      },
-                      {
-                        time: "13:45:21",
-                        user: "john.analyst",
-                        action: "simulate",
-                        resource: "Taiwan Blockade Scenario",
-                      },
-                    ].map((log, idx) => (
+                    {resolvedAuditLogs.map((log, idx) => (
                       <tr key={idx} className="hover:bg-gray-800/50">
                         <td className="px-6 py-3 text-sm text-gray-400">
                           {log.time}
