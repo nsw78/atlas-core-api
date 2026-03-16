@@ -6,17 +6,18 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Content Security Policy
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://api.mapbox.com;
     font-src 'self';
+    connect-src 'self' ${apiUrl} ws: wss:;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
   // Security Headers

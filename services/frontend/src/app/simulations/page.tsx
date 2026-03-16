@@ -92,7 +92,7 @@ export default function SimulationsPage() {
       defaults[p.key] = p.defaultValue;
     });
     setParameters(defaults);
-    setScenarioName(`${template.label} - ${new Date().toLocaleDateString()}`);
+    setScenarioName(`${t(template.label)} - ${new Date().toLocaleDateString()}`);
     setStep("configure");
   }, []);
 
@@ -277,7 +277,7 @@ export default function SimulationsPage() {
                     </div>
                     <h3 className="text-sm font-medium text-white mb-1">{scenario.name}</h3>
                     <p className="text-xs text-gray-500 mb-3" style={{ color: template?.color }}>
-                      {template?.label}
+                      {template ? t(template.label) : ""}
                     </p>
                     {scenario.results ? (
                       <div className="grid grid-cols-2 gap-2">
@@ -326,8 +326,8 @@ export default function SimulationsPage() {
                   >
                     <ScenarioIcon type={template.icon} color={template.color} />
                   </div>
-                  <h3 className="text-base font-semibold text-white mb-2">{template.label}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">{template.description}</p>
+                  <h3 className="text-base font-semibold text-white mb-2">{t(template.label)}</h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">{t(template.description)}</p>
                   <div className="mt-4 flex items-center gap-1 text-xs text-gray-500">
                     <span>{template.parameters.length} {t("simulations.parameters")}</span>
                   </div>
@@ -348,7 +348,7 @@ export default function SimulationsPage() {
                 <ScenarioIcon type={selectedTemplate.icon} color={selectedTemplate.color} />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">{selectedTemplate.label}</h2>
+                <h2 className="text-lg font-semibold text-white">{t(selectedTemplate.label)}</h2>
                 <p className="text-xs text-gray-400">{t("simulations.configureParameters")}</p>
               </div>
             </div>
@@ -369,8 +369,8 @@ export default function SimulationsPage() {
               {selectedTemplate.parameters.map((param) => (
                 <div key={param.key}>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                    {param.label}
-                    {param.unit && <span className="text-gray-500 font-normal ml-1">({param.unit})</span>}
+                    {t(param.label)}
+                    {param.unit && <span className="text-gray-500 font-normal ml-1">({param.unit.includes(".") ? t(param.unit) : param.unit})</span>}
                   </label>
 
                   {param.type === "select" && (
@@ -380,7 +380,7 @@ export default function SimulationsPage() {
                       className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
                     >
                       {param.options?.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
                       ))}
                     </select>
                   )}

@@ -63,10 +63,10 @@ function AlertModal({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ${sev.bg} ${sev.color} border ${sev.border}`}>
-                  {sev.label}
+                  {t(sev.labelKey)}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-white/[0.06] text-gray-300 border border-white/[0.08]">
-                  {category?.label || alert.category}
+                  {category ? t(category.labelKey) : alert.category}
                 </span>
                 <span className="text-xs text-gray-400">{alert.id}</span>
               </div>
@@ -321,7 +321,7 @@ export default function DashboardPage() {
       {isLoading && (
         <div className="flex items-center gap-2 px-4 py-2 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
-          <span className="text-xs text-blue-400">Loading live data...</span>
+          <span className="text-xs text-blue-400">{t("loading.liveData")}</span>
         </div>
       )}
 
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                 <button
                   onClick={autoRefresh.manualRefresh}
                   className="p-1.5 text-gray-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
-                  title="Refresh now"
+                  title={t("analytics.refreshNow")}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -454,7 +454,7 @@ export default function DashboardPage() {
             <div className="space-y-3">
               {analyticsKPIs.slice(0, 6).map((kpi) => (
                 <div key={kpi.id} className="flex items-center justify-between py-1.5 group">
-                  <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">{kpi.label}</span>
+                  <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">{t(kpi.label)}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-white tabular-nums">
                       {kpi.value}{kpi.unit}
@@ -528,7 +528,7 @@ export default function DashboardPage() {
               >
                 <option value="all">{t("dashboard.allCategories")}</option>
                 {alertCategories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>{t(cat.labelKey)}</option>
                 ))}
               </select>
             </div>
@@ -571,10 +571,10 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${sev.bg} ${sev.color}`}>
-                            {sev.label}
+                            {t(sev.labelKey)}
                           </span>
                           <span className="text-[10px] text-gray-500 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.06] rounded-md">
-                            {cat?.label}
+                            {cat ? t(cat.labelKey) : ""}
                           </span>
                           {alert.status === "unread" && (
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-400/30" />

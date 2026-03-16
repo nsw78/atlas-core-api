@@ -252,18 +252,18 @@ export const mockAlerts: AlertDetail[] = [
   },
 ];
 
-export const alertCategories: { value: AlertCategory; label: string; color: string }[] = [
-  { value: "cyber", label: "Cyber Security", color: "#8b5cf6" },
-  { value: "infrastructure", label: "Infrastructure", color: "#3b82f6" },
-  { value: "energy", label: "Energy", color: "#f59e0b" },
-  { value: "geopolitical", label: "Geopolitical", color: "#ef4444" },
-  { value: "climate", label: "Climate", color: "#06b6d4" },
-  { value: "supply_chain", label: "Supply Chain", color: "#10b981" },
+export const alertCategories: { value: AlertCategory; labelKey: string; color: string }[] = [
+  { value: "cyber", labelKey: "alertCategories.cyber", color: "#8b5cf6" },
+  { value: "infrastructure", labelKey: "alertCategories.infrastructure", color: "#3b82f6" },
+  { value: "energy", labelKey: "alertCategories.energy", color: "#f59e0b" },
+  { value: "geopolitical", labelKey: "alertCategories.geopolitical", color: "#ef4444" },
+  { value: "climate", labelKey: "alertCategories.climate", color: "#06b6d4" },
+  { value: "supply_chain", labelKey: "alertCategories.supplyChain", color: "#10b981" },
 ];
 
-export const severityConfig: Record<AlertSeverity, { label: string; color: string; bg: string; border: string }> = {
-  critical: { label: "Critical", color: "text-red-400", bg: "bg-red-500/20", border: "border-red-500/30" },
-  high: { label: "High", color: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" },
-  medium: { label: "Medium", color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" },
-  low: { label: "Low", color: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/30" },
+export const severityConfig: Record<AlertSeverity, { labelKey: string; color: string; bg: string; border: string }> = {
+  critical: { labelKey: "risk.critical", color: "text-red-400", bg: "bg-red-500/20", border: "border-red-500/30" },
+  high: { labelKey: "risk.high", color: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" },
+  medium: { labelKey: "risk.medium", color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" },
+  low: { labelKey: "risk.low", color: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/30" },
 };

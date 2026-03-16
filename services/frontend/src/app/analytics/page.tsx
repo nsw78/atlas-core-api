@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
   const radarData = useMemo(
     () =>
       resolvedBreakdown.map((c) => ({
-        category: c.category.split(" ")[0] || c.category,
+        category: t(c.category).split(" ")[0] || t(c.category),
         incidents: c.count,
         severity: c.avgSeverity * 10,
         percentage: c.percentage,
@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
         {isApiLoading && (
           <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
-            <span className="text-xs text-blue-400">Loading analytics data...</span>
+            <span className="text-xs text-blue-400">{t("loading.analytics")}</span>
           </div>
         )}
 
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {resolvedKPIs.map((kpi) => (
             <div key={kpi.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors">
-              <p className="text-xs text-gray-400 mb-1">{kpi.label}</p>
+              <p className="text-xs text-gray-400 mb-1">{t(kpi.label)}</p>
               <p className="text-xl font-bold text-white">
                 {kpi.value}{kpi.unit}
               </p>
@@ -399,7 +399,7 @@ export default function AnalyticsPage() {
                     <div key={cat.category} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                        <span className="text-xs text-gray-400">{cat.category}</span>
+                        <span className="text-xs text-gray-400">{t(cat.category)}</span>
                       </div>
                       <span className="text-xs font-medium text-white">{cat.percentage}%</span>
                     </div>
@@ -510,7 +510,7 @@ export default function AnalyticsPage() {
                   {regionHeatmap.map((region) => (
                     <tr key={region.code} className="hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4">
-                        <span className="text-sm font-medium text-white">{region.region}</span>
+                        <span className="text-sm font-medium text-white">{t(region.region)}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-gray-300">{region.incidents}</span>

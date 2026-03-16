@@ -118,11 +118,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const localeName = useCallback((loc: Locale) => localeNames[loc], []);
   const localeFlag = useCallback((loc: Locale) => localeFlagCodes[loc], []);
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return null;
-  }
-
+  // Always provide context so children never throw "useI18n must be used within I18nProvider".
+  // Before mount, we use the default locale ("en") which is the same as the SSR render,
+  // preventing hydration mismatch while keeping children in the tree.
   return (
     <I18nContext.Provider
       value={{

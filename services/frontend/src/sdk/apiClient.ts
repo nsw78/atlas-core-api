@@ -142,7 +142,7 @@ class ApiClient {
       // -- Response interceptor: handle 401 --
       if (response.status === 401) {
         clearAuthAndRedirect();
-        throw new ApiError(401, 'Unauthorized – session expired', 'UNAUTHORIZED');
+        throw new ApiError(401, 'apiErrors.unauthorized', 'UNAUTHORIZED');
       }
 
       if (!response.ok) {
@@ -184,7 +184,7 @@ class ApiClient {
       }
 
       // Network / other errors
-      const message = error instanceof Error ? error.message : 'Unknown network error';
+      const message = error instanceof Error ? error.message : 'apiErrors.networkError';
       throw new ApiError(0, message, 'NETWORK_ERROR');
     }
   }

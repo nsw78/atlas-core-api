@@ -147,7 +147,7 @@ export default function SanctionsPage() {
         {isLoading && (
           <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
-            <span className="text-xs text-blue-400">Loading live data...</span>
+            <span className="text-xs text-blue-400">{t("loading.liveData")}</span>
           </div>
         )}
 
